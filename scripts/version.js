@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * バージョン一括更新スクリプト
- * 
+ *
  * 使い方:
  *   bun scripts/version.js patch   # 0.1.4 -> 0.1.5
  *   bun scripts/version.js minor   # 0.1.4 -> 0.2.0
@@ -25,7 +25,7 @@ function getCurrentVersion() {
 
 function bumpVersion(current, type) {
   const [major, minor, patch] = current.split('.').map(Number);
-  
+
   switch (type) {
     case 'major':
       return `${major + 1}.0.0`;
@@ -53,7 +53,7 @@ function updateFile(filePath, pattern, newVersion) {
 
 function main() {
   const arg = process.argv[2];
-  
+
   if (!arg) {
     console.log('Usage: bun scripts/version.js <patch|minor|major|x.y.z>');
     process.exit(1);
@@ -83,4 +83,3 @@ function main() {
 }
 
 main();
-
