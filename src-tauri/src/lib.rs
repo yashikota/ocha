@@ -29,7 +29,7 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
             info!("Ocha starting up...");
-            
+
             // データディレクトリを取得してDBを初期化
             let app_data_dir = app
                 .path()
@@ -37,12 +37,12 @@ pub fn run() {
                 .expect("Failed to get app data directory");
 
             info!("App data dir: {:?}", app_data_dir);
-            
+
             if let Err(e) = db::init(app_data_dir) {
                 error!("Failed to initialize database: {}", e);
                 return Err(e.into());
             }
-            
+
             info!("Database initialized successfully");
 
             Ok(())

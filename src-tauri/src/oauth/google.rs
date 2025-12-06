@@ -39,7 +39,7 @@ fn generate_random_string(len: usize) -> String {
 fn generate_code_challenge(verifier: &str) -> String {
     use base64::Engine;
     use sha2::Digest;
-    
+
     let mut hasher = sha2::Sha256::new();
     hasher.update(verifier.as_bytes());
     let hash = hasher.finalize();
@@ -51,13 +51,13 @@ pub fn start_oauth_flow(config: &OAuthConfig) -> Result<String> {
     let code_verifier = generate_random_string(64);
     let code_challenge = generate_code_challenge(&code_verifier);
     let state = generate_random_string(32);
-    
+
     // 認証状態を保存
     *get_auth_state().lock() = Some(AuthState {
         code_verifier,
         state: state.clone(),
     });
-    
+
     let scope = format!("{} {} {}", GMAIL_SCOPE, USERINFO_EMAIL_SCOPE, USERINFO_PROFILE_SCOPE);
     let auth_url = format!(
         "{}?client_id={}&redirect_uri={}&response_type=code&scope={}&access_type=offline&prompt=consent&state={}&code_challenge={}&code_challenge_method=S256",
@@ -68,7 +68,7 @@ pub fn start_oauth_flow(config: &OAuthConfig) -> Result<String> {
         urlencoding::encode(&state),
         urlencoding::encode(&code_challenge),
     );
-    
+
     Ok(auth_url)
 }
 
@@ -77,61 +77,61 @@ pub async fn handle_oauth_callback(config: &OAuthConfig) -> Result<TokenResult> 
     // リダイレクトURIからポートを抽出
     let port = extract_port(&config.redirect_uri)?;
     info!("Starting callback listener on port {}", port);
-    
+
     let listener = TcpListener::bind(format!("127.0.0.1:{}", port))
         .map_err(|e| {
             error!("Failed to bind to port {}: {}", port, e);
             anyhow!("Failed to bind to port {}: {}", port, e)
         })?;
-    
+
     info!("Listener bound, waiting for callback...");
-    
+
     // 接続を待機
     let (mut stream, addr) = listener.accept()
         .map_err(|e| {
             error!("Failed to accept connection: {}", e);
             anyhow!("Failed to accept connection: {}", e)
         })?;
-    
+
     info!("Connection received from {}", addr);
-    
+
     let mut reader = BufReader::new(&stream);
     let mut request_line = String::new();
     reader.read_line(&mut request_line)?;
-    
+
     debug!("Request line: {}", request_line.trim());
-    
+
     // リクエストからコードとstateを抽出
     let (code, state) = parse_callback_request(&request_line)
         .map_err(|e| {
             error!("Failed to parse callback request: {}", e);
             e
         })?;
-    
+
     debug!("Extracted code and state from callback");
-    
+
     // CSRF検証
     let auth_state = get_auth_state().lock().take()
         .ok_or_else(|| {
             error!("No pending OAuth flow found");
             anyhow!("No pending OAuth flow")
         })?;
-    
+
     if state != auth_state.state {
         error!("CSRF token mismatch: expected {}, got {}", auth_state.state, state);
         return Err(anyhow!("CSRF token mismatch"));
     }
-    
+
     info!("CSRF token verified");
-    
+
     // 成功レスポンスを返す
     let response = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\n\r\n\
         <html><body><h1>認証成功!</h1><p>このウィンドウを閉じてアプリに戻ってください。</p></body></html>";
     stream.write_all(response.as_bytes())?;
     drop(stream);
-    
+
     info!("Exchanging code for tokens...");
-    
+
     // トークンを取得
     let client = reqwest::Client::new();
     let response = client
@@ -146,20 +146,20 @@ pub async fn handle_oauth_callback(config: &OAuthConfig) -> Result<TokenResult> 
         ])
         .send()
         .await?;
-    
+
     if !response.status().is_success() {
         let status = response.status();
         let error_text = response.text().await?;
         error!("Token exchange failed with status {}: {}", status, error_text);
         return Err(anyhow!("Token exchange failed: {}", error_text));
     }
-    
+
     info!("Token exchange successful");
-    
+
     let token_response: TokenResponse = response.json().await?;
-    
+
     let expires_at = chrono::Utc::now() + chrono::Duration::seconds(token_response.expires_in as i64);
-    
+
     Ok(TokenResult {
         access_token: token_response.access_token,
         refresh_token: token_response.refresh_token
@@ -184,16 +184,16 @@ pub async fn refresh_access_token(config: &OAuthConfig, refresh_token: &str) -> 
         ])
         .send()
         .await?;
-    
+
     if !response.status().is_success() {
         let error_text = response.text().await?;
         return Err(anyhow!("Token refresh failed: {}", error_text));
     }
-    
+
     let token_response: TokenResponse = response.json().await?;
-    
+
     let expires_at = chrono::Utc::now() + chrono::Duration::seconds(token_response.expires_in as i64);
-    
+
     Ok(TokenResult {
         access_token: token_response.access_token,
         refresh_token: token_response.refresh_token.unwrap_or_else(|| refresh_token.to_string()),
@@ -226,21 +226,21 @@ fn parse_callback_request(request_line: &str) -> Result<(String, String)> {
         .split_whitespace()
         .nth(1)
         .ok_or_else(|| anyhow!("Invalid request"))?;
-    
+
     let url = url::Url::parse(&format!("http://localhost{}", path))?;
-    
+
     let code = url
         .query_pairs()
         .find(|(k, _)| k == "code")
         .map(|(_, v)| v.to_string())
         .ok_or_else(|| anyhow!("No code in callback"))?;
-    
+
     let state = url
         .query_pairs()
         .find(|(k, _)| k == "state")
         .map(|(_, v)| v.to_string())
         .ok_or_else(|| anyhow!("No state in callback"))?;
-    
+
     Ok((code, state))
 }
 
@@ -259,24 +259,24 @@ pub async fn get_user_info(access_token: &str) -> Result<UserInfo> {
         .bearer_auth(access_token)
         .send()
         .await?;
-    
+
     let status = response.status();
     let text = response.text().await?;
-    
+
     debug!("User info response status: {}", status);
     debug!("User info response body: {}", text);
-    
+
     if !status.is_success() {
         error!("Failed to get user info: {}", text);
         return Err(anyhow!("Failed to get user info: {}", text));
     }
-    
+
     let user_info: UserInfo = serde_json::from_str(&text)
         .map_err(|e| {
             error!("Failed to parse user info: {} - body: {}", e, text);
             anyhow!("Failed to parse user info: {}", e)
         })?;
-    
+
     Ok(user_info)
 }
 
