@@ -48,23 +48,23 @@ const normalizeText = (text: string): string => {
 // 前のメッセージの引用部分を検出
 const findQuotedContent = (body: string, previousBodies: string[]): number => {
   if (!previousBodies || previousBodies.length === 0) return -1;
-  
+
   const normalized = body.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   const lines = normalized.split('\n');
-  
+
   // 各行について、前のメッセージの内容が含まれているかチェック
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const lineNorm = normalizeText(line);
-    
+
     // 短すぎる行は無視
     if (lineNorm.length < 10) continue;
-    
+
     // 前のメッセージのいずれかに含まれているかチェック
     for (const prevBody of previousBodies) {
       const prevNorm = normalizeText(prevBody);
       if (prevNorm.length < 10) continue;
-      
+
       // この行が前のメッセージに含まれているか
       if (prevNorm.includes(lineNorm)) {
         // この行より前の位置を返す
@@ -73,7 +73,7 @@ const findQuotedContent = (body: string, previousBodies: string[]): number => {
       }
     }
   }
-  
+
   return -1;
 };
 
@@ -85,16 +85,41 @@ const findSignatureStart = (text: string): number => {
     /\nSent from my /i,
     /\niPhoneから送信/,
   ];
-  
+
   for (const pattern of patterns) {
     const match = text.search(pattern);
     if (match !== -1) return match;
   }
-  
+
   return -1;
 };
 
 const MAX_LENGTH = 500;
+
+// URLを検出してリンク化
+const linkifyText = (text: string, isSent: boolean) => {
+  const urlRegex = /(https?:\/\/[^\s<>"{}|\\^`\[\]]+)/g;
+  const parts = text.split(urlRegex);
+  
+  return parts.map((part, index) => {
+    if (urlRegex.test(part)) {
+      // URLリセット
+      urlRegex.lastIndex = 0;
+      return (
+        <a
+          key={index}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`underline ${isSent ? 'text-white/90 hover:text-white' : 'text-primary hover:text-primary-hover'}`}
+        >
+          {part}
+        </a>
+      );
+    }
+    return part;
+  });
+};
 
 export function MessageItem({ message, previousBodies = [], onAttachmentClick }: MessageItemProps) {
   const { t } = useTranslation();
@@ -107,11 +132,11 @@ export function MessageItem({ message, previousBodies = [], onAttachmentClick }:
 
   const rawBody = message.bodyText || '';
   const fullBody = rawBody.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-  
+
   // 引用または署名の開始位置を検出
   const quoteStart = findQuotedContent(fullBody, previousBodies);
   const sigStart = findSignatureStart(fullBody);
-  
+
   // より早い位置を使う
   let footerStart = -1;
   if (quoteStart !== -1 && sigStart !== -1) {
@@ -121,7 +146,7 @@ export function MessageItem({ message, previousBodies = [], onAttachmentClick }:
   } else if (sigStart !== -1) {
     footerStart = sigStart;
   }
-  
+
   const hasFooter = footerStart !== -1;
   const mainBody = hasFooter ? fullBody.slice(0, footerStart).trim() : fullBody;
   const needsTruncation = mainBody.length > MAX_LENGTH || hasFooter;
@@ -137,16 +162,16 @@ export function MessageItem({ message, previousBodies = [], onAttachmentClick }:
       <div className="flex justify-end px-4 py-2">
         <div className="max-w-[75%] flex flex-col items-end">
           <span className="text-xs text-text-sub mb-1">{formatTime(message.receivedAt)}</span>
-          
+
           {message.subject && (
             <div className="text-xs text-text-sub mb-1 text-right">
               {message.subject}
             </div>
           )}
-          
+
           <div className="bg-primary text-white rounded-2xl rounded-tr-sm px-4 py-2">
             <p className="text-sm whitespace-pre-wrap break-words">
-              {displayContent}
+              {linkifyText(displayContent, true)}
             </p>
 
             {needsTruncation && (
@@ -183,16 +208,16 @@ export function MessageItem({ message, previousBodies = [], onAttachmentClick }:
           <span className="text-xs font-medium text-text">{displayName}</span>
           <span className="text-xs text-text-sub">{formatTime(message.receivedAt)}</span>
         </div>
-        
+
         {message.subject && (
           <div className="text-xs text-text-sub mb-1">
             {message.subject}
           </div>
         )}
-        
+
         <div className="bg-gray-100 text-text rounded-2xl rounded-tl-sm px-4 py-2">
           <p className="text-sm whitespace-pre-wrap break-words">
-            {displayContent}
+            {linkifyText(displayContent, false)}
           </p>
 
           {needsTruncation && (
