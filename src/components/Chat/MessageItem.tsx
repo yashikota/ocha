@@ -35,9 +35,9 @@ const formatTime = (dateString: string): string => {
 export function MessageItem({ message, onAttachmentClick }: MessageItemProps) {
   const { t } = useTranslation();
   const isSent = message.isSent;
-  
+
   // 表示名の決定
-  const displayName = isSent 
+  const displayName = isSent
     ? (message.toEmail || '宛先不明')
     : (message.fromName || message.fromEmail);
   const initial = displayName.charAt(0).toUpperCase();

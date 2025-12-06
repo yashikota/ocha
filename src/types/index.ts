@@ -71,4 +71,3 @@ export interface Settings {
 
 // 認証状態
 export type AuthState = 'loading' | 'needs_config' | 'unauthenticated' | 'authenticated';
-

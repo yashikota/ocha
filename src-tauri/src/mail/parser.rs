@@ -32,17 +32,17 @@ pub struct ParsedAttachment {
 /// 生メールをパース
 pub fn parse_email(raw: &RawMessage) -> Result<ParsedEmail> {
     let parsed = parse_mail(&raw.body)?;
-    
+
     let (body_text, body_html) = extract_body(&parsed);
     let attachments = extract_attachments(&parsed);
-    
+
     // 日付をパース
     let received_at = raw
         .date
         .as_ref()
         .and_then(|d| parse_date(d))
         .unwrap_or_else(|| chrono::Utc::now().to_rfc3339());
-    
+
     Ok(ParsedEmail {
         uid: raw.uid,
         message_id: raw.message_id.clone(),
@@ -62,7 +62,7 @@ pub fn parse_email(raw: &RawMessage) -> Result<ParsedEmail> {
 fn extract_body(mail: &ParsedMail) -> (Option<String>, Option<String>) {
     let mut text_body = None;
     let mut html_body = None;
-    
+
     if mail.subparts.is_empty() {
         // シングルパートメール
         let content_type = mail.ctype.mimetype.as_str();
@@ -77,7 +77,7 @@ fn extract_body(mail: &ParsedMail) -> (Option<String>, Option<String>) {
         // マルチパートメール
         extract_body_recursive(mail, &mut text_body, &mut html_body);
     }
-    
+
     (text_body, html_body)
 }
 
@@ -87,14 +87,14 @@ fn extract_body_recursive(
     html_body: &mut Option<String>,
 ) {
     let content_type = mail.ctype.mimetype.as_str();
-    
+
     // 添付ファイルはスキップ
     if let Some(disposition) = mail.headers.get_first_value("Content-Disposition") {
         if disposition.to_lowercase().starts_with("attachment") {
             return;
         }
     }
-    
+
     if content_type.starts_with("text/plain") && text_body.is_none() {
         if let Ok(body) = mail.get_body() {
             *text_body = Some(body);
@@ -104,7 +104,7 @@ fn extract_body_recursive(
             *html_body = Some(body);
         }
     }
-    
+
     // 再帰的にサブパートを処理
     for subpart in &mail.subparts {
         extract_body_recursive(subpart, text_body, html_body);
@@ -120,19 +120,19 @@ fn extract_attachments(mail: &ParsedMail) -> Vec<ParsedAttachment> {
 
 fn extract_attachments_recursive(mail: &ParsedMail, attachments: &mut Vec<ParsedAttachment>) {
     let content_type = mail.ctype.mimetype.as_str();
-    
+
     // Content-Dispositionをチェック
     let is_attachment = mail
         .headers
         .get_first_value("Content-Disposition")
         .map(|d| d.to_lowercase().starts_with("attachment"))
         .unwrap_or(false);
-    
+
     // インライン以外で、テキストでない場合も添付ファイルとして扱う
     let is_inline_attachment = !content_type.starts_with("text/")
         && !content_type.starts_with("multipart/")
         && mail.ctype.params.contains_key("name");
-    
+
     if is_attachment || is_inline_attachment {
         let filename = get_attachment_filename(mail);
         if let Some(filename) = filename {
@@ -146,7 +146,7 @@ fn extract_attachments_recursive(mail: &ParsedMail, attachments: &mut Vec<Parsed
             }
         }
     }
-    
+
     // 再帰的にサブパートを処理
     for subpart in &mail.subparts {
         extract_attachments_recursive(subpart, attachments);
@@ -161,12 +161,12 @@ fn get_attachment_filename(mail: &ParsedMail) -> Option<String> {
             return Some(decode_filename(&filename));
         }
     }
-    
+
     // Content-Typeからnameを取得
     if let Some(name) = mail.ctype.params.get("name") {
         return Some(decode_filename(name));
     }
-    
+
     None
 }
 
@@ -176,7 +176,7 @@ fn extract_param(header: &str, param_name: &str) -> Option<String> {
     if let Some(pos) = header.to_lowercase().find(&pattern) {
         let start = pos + pattern.len();
         let rest = &header[start..];
-        
+
         if rest.starts_with('"') {
             // クォートされている場合
             if let Some(end) = rest[1..].find('"') {
@@ -200,7 +200,7 @@ fn decode_filename(filename: &str) -> String {
             return decoded;
         }
     }
-    
+
     // RFC 2231エンコーディングをデコード
     if filename.contains("''") {
         if let Some(pos) = filename.find("''") {
@@ -208,7 +208,7 @@ fn decode_filename(filename: &str) -> String {
             return percent_decode(encoded);
         }
     }
-    
+
     filename.to_string()
 }
 
@@ -218,7 +218,7 @@ fn decode_mime_word(s: &str) -> Option<String> {
     if parts.len() >= 4 {
         let encoding = parts[2].to_uppercase();
         let text = parts[3].trim_end_matches("?=");
-        
+
         if encoding == "B" {
             // Base64
             if let Ok(decoded) = base64::engine::general_purpose::STANDARD.decode(text) {
@@ -237,7 +237,7 @@ fn decode_mime_word(s: &str) -> Option<String> {
 fn decode_quoted_printable(s: &str) -> String {
     let mut result = String::new();
     let mut chars = s.chars().peekable();
-    
+
     while let Some(c) = chars.next() {
         if c == '=' {
             let hex: String = chars.by_ref().take(2).collect();
@@ -250,14 +250,14 @@ fn decode_quoted_printable(s: &str) -> String {
             result.push(c);
         }
     }
-    
+
     result
 }
 
 fn percent_decode(s: &str) -> String {
     let mut result = Vec::new();
     let mut chars = s.chars().peekable();
-    
+
     while let Some(c) = chars.next() {
         if c == '%' {
             let hex: String = chars.by_ref().take(2).collect();
@@ -268,7 +268,7 @@ fn percent_decode(s: &str) -> String {
             result.push(c as u8);
         }
     }
-    
+
     String::from_utf8_lossy(&result).to_string()
 }
 
@@ -278,7 +278,7 @@ fn parse_date(date_str: &str) -> Option<String> {
     if let Ok(dt) = chrono::DateTime::parse_from_rfc2822(date_str) {
         return Some(dt.with_timezone(&chrono::Utc).to_rfc3339());
     }
-    
+
     // その他の一般的な形式を試す
     let formats = [
         "%a, %d %b %Y %H:%M:%S %z",
@@ -286,12 +286,12 @@ fn parse_date(date_str: &str) -> Option<String> {
         "%a, %d %b %Y %H:%M:%S",
         "%d %b %Y %H:%M:%S",
     ];
-    
+
     for fmt in &formats {
         if let Ok(dt) = chrono::NaiveDateTime::parse_from_str(date_str.trim(), fmt) {
             return Some(dt.and_utc().to_rfc3339());
         }
     }
-    
+
     None
 }

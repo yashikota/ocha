@@ -89,7 +89,7 @@ pub fn create_tables(conn: &Connection) -> Result<()> {
         CREATE INDEX IF NOT EXISTS idx_attachments_message_id ON attachments(message_id);
         "#,
     )?;
-    
+
     // マイグレーション: 既存のテーブルに新しいカラムを追加
     run_migrations(conn)?;
 
@@ -106,10 +106,10 @@ fn run_migrations(conn: &Connection) -> Result<()> {
         )
         .map(|count| count > 0)
         .unwrap_or(false);
-    
+
     if !has_to_email {
         info!("Running migration: adding to_email, is_sent, folder columns to messages table");
-        
+
         // 新しいカラムを追加
         conn.execute_batch(
             r#"
@@ -118,10 +118,9 @@ fn run_migrations(conn: &Connection) -> Result<()> {
             ALTER TABLE messages ADD COLUMN folder TEXT NOT NULL DEFAULT 'INBOX';
             "#,
         )?;
-        
+
         info!("Migration completed successfully");
     }
-    
+
     Ok(())
 }
-

@@ -16,7 +16,7 @@
   --color-message-bg: #ffffff;
   --color-hover: #f0f7f0;
   --color-selected: #d7eed8;
-  
+
   /* フォント */
   --font-sans: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Meiryo", sans-serif;
 }
@@ -62,4 +62,3 @@ body {
 .animate-fade-in {
   animation: fade-in 0.2s ease-out;
 }
-
