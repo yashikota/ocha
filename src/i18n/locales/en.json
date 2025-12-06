@@ -88,7 +88,6 @@
         },
         "data": {
             "title": "Data Management",
-            "resetDescription": "To fix encoding issues, reset messages and re-sync.",
             "resetButton": "Reset Messages",
             "resetConfirm": "Delete all messages and groups? You will need to re-sync.",
             "resetSuccess": "Reset complete. Reloading app.",

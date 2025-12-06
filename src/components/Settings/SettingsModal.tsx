@@ -126,7 +126,6 @@ export function SettingsModal() {
           <section>
             <h3 className="text-sm font-semibold text-text mb-3">{t('settings.data.title')}</h3>
             <div className="bg-bg rounded-lg p-4">
-              <p className="text-sm text-text-sub mb-3">{t('settings.data.resetDescription')}</p>
               <button
                 onClick={async () => {
                   if (window.confirm(t('settings.data.resetConfirm'))) {
