@@ -5,6 +5,7 @@ import type { Message } from '../../types';
 
 interface MessageItemProps {
   message: Message;
+  previousBodies?: string[];
   onAttachmentClick?: (attachmentId: number) => void;
 }
 
@@ -33,31 +34,61 @@ const formatTime = (dateString: string): string => {
   });
 };
 
-// 署名・引用ヘッダーの開始位置を検出
-const findFooterStart = (text: string): number => {
-  // 改行を統一
-  const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+// テキストを正規化（比較用）
+const normalizeText = (text: string): string => {
+  return text
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/^>\s?/gm, '') // 引用の > を除去
+    .replace(/\s+/g, ' ')   // 空白を統一
+    .trim()
+    .toLowerCase();
+};
+
+// 前のメッセージの引用部分を検出
+const findQuotedContent = (body: string, previousBodies: string[]): number => {
+  if (!previousBodies || previousBodies.length === 0) return -1;
   
-  // 確実な引用/署名パターン
+  const normalized = body.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const lines = normalized.split('\n');
+  
+  // 各行について、前のメッセージの内容が含まれているかチェック
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const lineNorm = normalizeText(line);
+    
+    // 短すぎる行は無視
+    if (lineNorm.length < 10) continue;
+    
+    // 前のメッセージのいずれかに含まれているかチェック
+    for (const prevBody of previousBodies) {
+      const prevNorm = normalizeText(prevBody);
+      if (prevNorm.length < 10) continue;
+      
+      // この行が前のメッセージに含まれているか
+      if (prevNorm.includes(lineNorm)) {
+        // この行より前の位置を返す
+        const pos = lines.slice(0, i).join('\n').length;
+        return pos > 0 ? pos : 0;
+      }
+    }
+  }
+  
+  return -1;
+};
+
+// 署名パターンを検出
+const findSignatureStart = (text: string): number => {
   const patterns = [
-    /\n--\s*\n/,                              // 標準署名区切り
-    /\n_{3,}/,                                // アンダースコア区切り
-    /\nSent from my /i,                       // iOS署名
-    /\niPhoneから送信/,                        // 日本語iOS
-    /\nOn \d{4}\/\d{1,2}\/\d{1,2}[^]*?wrote:/i, // Gmail引用 (On 2025/08/20 ... wrote:)
-    /\nOn [A-Z][a-z]{2} \d{1,2}, \d{4}[^]*?wrote:/i, // Gmail引用 (On Aug 20, 2024 ... wrote:)
-    /\n\d{4}年\d{1,2}月\d{1,2}日[^]*?:/,       // 日本語Gmail引用
-    /\n-{3,}.*Original Message/i,            // Outlook引用
-    /\n_{3,}.*Original Message/i,            // Outlook引用
-    /\nFrom: [^\n]+\nSent: /i,               // Outlook形式引用ヘッダー
-    /\n差出人: [^\n]+\n送信日時: /,            // 日本語Outlook
+    /\n--\s*\n/,
+    /\n_{3,}/,
+    /\nSent from my /i,
+    /\niPhoneから送信/,
   ];
   
   for (const pattern of patterns) {
-    const match = normalized.search(pattern);
-    if (match !== -1) {
-      return match;
-    }
+    const match = text.search(pattern);
+    if (match !== -1) return match;
   }
   
   return -1;
@@ -65,7 +96,7 @@ const findFooterStart = (text: string): number => {
 
 const MAX_LENGTH = 500;
 
-export function MessageItem({ message, onAttachmentClick }: MessageItemProps) {
+export function MessageItem({ message, previousBodies = [], onAttachmentClick }: MessageItemProps) {
   const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);
   const isSent = message.isSent;
@@ -76,7 +107,21 @@ export function MessageItem({ message, onAttachmentClick }: MessageItemProps) {
 
   const rawBody = message.bodyText || '';
   const fullBody = rawBody.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-  const footerStart = findFooterStart(fullBody);
+  
+  // 引用または署名の開始位置を検出
+  const quoteStart = findQuotedContent(fullBody, previousBodies);
+  const sigStart = findSignatureStart(fullBody);
+  
+  // より早い位置を使う
+  let footerStart = -1;
+  if (quoteStart !== -1 && sigStart !== -1) {
+    footerStart = Math.min(quoteStart, sigStart);
+  } else if (quoteStart !== -1) {
+    footerStart = quoteStart;
+  } else if (sigStart !== -1) {
+    footerStart = sigStart;
+  }
+  
   const hasFooter = footerStart !== -1;
   const mainBody = hasFooter ? fullBody.slice(0, footerStart).trim() : fullBody;
   const needsTruncation = mainBody.length > MAX_LENGTH || hasFooter;
@@ -92,13 +137,13 @@ export function MessageItem({ message, onAttachmentClick }: MessageItemProps) {
       <div className="flex justify-end px-4 py-2">
         <div className="max-w-[75%] flex flex-col items-end">
           <span className="text-xs text-text-sub mb-1">{formatTime(message.receivedAt)}</span>
-
+          
           {message.subject && (
             <div className="text-xs text-text-sub mb-1 text-right">
               {message.subject}
             </div>
           )}
-
+          
           <div className="bg-primary text-white rounded-2xl rounded-tr-sm px-4 py-2">
             <p className="text-sm whitespace-pre-wrap break-words">
               {displayContent}
@@ -138,13 +183,13 @@ export function MessageItem({ message, onAttachmentClick }: MessageItemProps) {
           <span className="text-xs font-medium text-text">{displayName}</span>
           <span className="text-xs text-text-sub">{formatTime(message.receivedAt)}</span>
         </div>
-
+        
         {message.subject && (
           <div className="text-xs text-text-sub mb-1">
             {message.subject}
           </div>
         )}
-
+        
         <div className="bg-gray-100 text-text rounded-2xl rounded-tl-sm px-4 py-2">
           <p className="text-sm whitespace-pre-wrap break-words">
             {displayContent}

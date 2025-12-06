@@ -20,6 +20,11 @@ export function MessageList({ messages, loading, onAttachmentClick }: MessageLis
     }
   }, [messages.length]);
 
+  // 前のメッセージの本文を集める（引用検出用）
+  const previousBodies = messages.map((_, index) => 
+    messages.slice(0, index).map(m => m.bodyText || '')
+  );
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -45,10 +50,11 @@ export function MessageList({ messages, loading, onAttachmentClick }: MessageLis
   return (
     <div ref={listRef} className="flex-1 overflow-y-auto">
       <div className="divide-y divide-border">
-        {messages.map((message) => (
+        {messages.map((message, index) => (
           <MessageItem
             key={message.id}
             message={message}
+            previousBodies={previousBodies[index]}
             onAttachmentClick={onAttachmentClick}
           />
         ))}
