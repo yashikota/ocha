@@ -374,7 +374,7 @@ impl Message {
     pub fn insert(conn: &Connection, msg: &NewMessage) -> Result<i64> {
         conn.execute(
             r#"
-            INSERT INTO messages (uid, message_id, group_id, from_email, from_name, to_email,
+            INSERT OR IGNORE INTO messages (uid, message_id, group_id, from_email, from_name, to_email,
                                   subject, body_text, body_html, received_at, is_sent, folder)
             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
             "#,
