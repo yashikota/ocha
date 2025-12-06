@@ -47,6 +47,11 @@ impl OAuthConfig {
         )?;
         Ok(())
     }
+
+    pub fn delete(conn: &Connection) -> Result<()> {
+        conn.execute("DELETE FROM oauth_config WHERE id = 1", [])?;
+        Ok(())
+    }
 }
 
 // ============================================================================

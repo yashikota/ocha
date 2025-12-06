@@ -178,9 +178,10 @@ pub async fn handle_oauth_callback() -> Result<Account, String> {
     Ok(account)
 }
 
-/// ログアウト
+/// ログアウト（アカウントとOAuth設定を削除）
 #[tauri::command]
 pub fn logout() -> Result<(), String> {
+    // アカウントを削除
     let account = db::with_db(|conn| Account::get(conn))
         .map_err(|e| e.to_string())?;
 
@@ -188,6 +189,10 @@ pub fn logout() -> Result<(), String> {
         db::with_db(|conn| Account::delete(conn, account.id))
             .map_err(|e| e.to_string())?;
     }
+
+    // OAuth設定も削除
+    db::with_db(|conn| OAuthConfig::delete(conn))
+        .map_err(|e| e.to_string())?;
 
     Ok(())
 }

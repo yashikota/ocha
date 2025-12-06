@@ -52,12 +52,13 @@ export function useAuth() {
     return newAccount;
   }, [setAccount, setAuthState]);
 
-  // ログアウト
+  // ログアウト（OAuth設定画面に戻る）
   const logout = useCallback(async () => {
     await tauri.logout();
     setAccount(null);
-    setAuthState('unauthenticated');
-  }, [setAccount, setAuthState]);
+    setOAuthConfig(null);
+    setAuthState('needs_config');
+  }, [setAccount, setOAuthConfig, setAuthState]);
 
   // 初回マウント時に認証状態を確認
   useEffect(() => {
