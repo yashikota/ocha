@@ -1,11 +1,27 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAtom } from 'jotai';
+import {
+  DndContext,
+  DragOverlay,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragStartEvent,
+  DragEndEvent,
+  DragOverEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import { GroupItem } from './GroupItem';
 import { useGroups } from '../../hooks/useGroups';
 import { settingsModalOpenAtom } from '../../atoms/uiAtom';
 import { mergeGroups, getGroups } from '../../hooks/useTauri';
 import { groupsAtom } from '../../atoms/groupsAtom';
+import type { Group } from '../../types';
 
 interface SidebarProps {
   onRefresh?: () => void;
@@ -24,54 +40,74 @@ export function Sidebar({ onRefresh }: SidebarProps) {
   const [, setSettingsOpen] = useAtom(settingsModalOpenAtom);
   const [, setGroups] = useAtom(groupsAtom);
 
-  const [draggingGroupId, setDraggingGroupId] = useState<number | null>(null);
+  const [activeGroup, setActiveGroup] = useState<Group | null>(null);
+  const [overGroupId, setOverGroupId] = useState<number | null>(null);
   const [merging, setMerging] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
 
   useEffect(() => {
     fetchGroups();
     fetchUnreadCounts();
   }, [fetchGroups, fetchUnreadCounts]);
 
-  const handleDragStart = (groupId: number) => {
-    setDraggingGroupId(groupId);
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    const group = groups.find(g => g.id === active.id);
+    if (group) {
+      setActiveGroup(group);
+    }
   };
 
-  const handleDragEnd = () => {
-    setDraggingGroupId(null);
+  const handleDragOver = (event: DragOverEvent) => {
+    const { over } = event;
+    setOverGroupId(over ? Number(over.id) : null);
   };
 
-  const handleDrop = async (targetGroupId: number) => {
-    if (!draggingGroupId || draggingGroupId === targetGroupId || merging) return;
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    setActiveGroup(null);
+    setOverGroupId(null);
 
-    const sourceGroup = groups.find(g => g.id === draggingGroupId);
-    const targetGroup = groups.find(g => g.id === targetGroupId);
+    if (!over || active.id === over.id || merging) return;
+
+    const sourceGroup = groups.find(g => g.id === active.id);
+    const targetGroup = groups.find(g => g.id === over.id);
 
     if (!sourceGroup || !targetGroup) return;
 
-    const confirmMessage = t('groupEdit.mergeConfirm', {
+    const confirmMessage = t('sidebar.mergeConfirm', {
       source: sourceGroup.name,
       target: targetGroup.name,
     });
 
-    if (!window.confirm(confirmMessage)) {
-      setDraggingGroupId(null);
-      return;
-    }
+    if (!window.confirm(confirmMessage)) return;
 
     setMerging(true);
     try {
-      await mergeGroups(targetGroupId, draggingGroupId);
+      await mergeGroups(Number(over.id), Number(active.id));
       const updatedGroups = await getGroups();
       setGroups(updatedGroups);
       await fetchUnreadCounts();
-      // 統合後、ターゲットグループを選択
-      selectGroup(targetGroupId);
+      selectGroup(Number(over.id));
     } catch (error) {
       console.error('Failed to merge groups:', error);
+      alert(t('common.error') + ': ' + error);
     } finally {
       setMerging(false);
-      setDraggingGroupId(null);
     }
+  };
+
+  const handleDragCancel = () => {
+    setActiveGroup(null);
+    setOverGroupId(null);
   };
 
   return (
@@ -83,7 +119,6 @@ export function Sidebar({ onRefresh }: SidebarProps) {
           <h1 className="font-bold text-text">{t('app.name')}</h1>
         </div>
         <div className="flex items-center gap-1">
-          {/* 同期ボタン */}
           {onRefresh && (
             <button
               onClick={onRefresh}
@@ -96,7 +131,6 @@ export function Sidebar({ onRefresh }: SidebarProps) {
               </svg>
             </button>
           )}
-          {/* 設定ボタン */}
           <button
             onClick={() => setSettingsOpen(true)}
             className="p-2 rounded-lg hover:bg-hover transition-colors"
@@ -116,8 +150,8 @@ export function Sidebar({ onRefresh }: SidebarProps) {
           <span className="text-xs font-semibold text-text-sub uppercase tracking-wide">
             {t('sidebar.groups')}
           </span>
-          {draggingGroupId && (
-            <span className="text-xs text-primary animate-pulse">
+          {activeGroup && (
+            <span className="text-xs text-primary font-medium animate-pulse">
               {t('sidebar.dropToMerge')}
             </span>
           )}
@@ -128,22 +162,47 @@ export function Sidebar({ onRefresh }: SidebarProps) {
             {t('sidebar.noGroups')}
           </p>
         ) : (
-          <nav className="space-y-0.5">
-            {groups.map((group) => (
-              <GroupItem
-                key={group.id}
-                group={group}
-                isSelected={selectedGroupId === group.id}
-                unreadCount={unreadCounts[group.id] || 0}
-                onClick={() => selectGroup(group.id)}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-                onDrop={handleDrop}
-                isDragging={draggingGroupId !== null}
-                dragOverGroupId={draggingGroupId}
-              />
-            ))}
-          </nav>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
+          >
+            <SortableContext
+              items={groups.map(g => g.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <nav className="space-y-1">
+                {groups.map((group) => (
+                  <GroupItem
+                    key={group.id}
+                    group={group}
+                    isSelected={selectedGroupId === group.id}
+                    unreadCount={unreadCounts[group.id] || 0}
+                    onClick={() => selectGroup(group.id)}
+                    isOver={overGroupId === group.id && activeGroup?.id !== group.id}
+                  />
+                ))}
+              </nav>
+            </SortableContext>
+
+            <DragOverlay dropAnimation={{
+              duration: 200,
+              easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
+            }}>
+              {activeGroup ? (
+                <GroupItem
+                  group={activeGroup}
+                  isSelected={false}
+                  unreadCount={unreadCounts[activeGroup.id] || 0}
+                  onClick={() => {}}
+                  isOverlay
+                />
+              ) : null}
+            </DragOverlay>
+          </DndContext>
         )}
       </div>
     </aside>

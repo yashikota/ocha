@@ -40,7 +40,9 @@
         "newGroup": "新規グループ",
         "noGroups": "グループがありません",
         "search": "検索...",
-        "dropToMerge": "ドロップで統合"
+        "dropToMerge": "ドロップで統合",
+        "mergeHere": "ここに統合",
+        "mergeConfirm": "「{{source}}」を「{{target}}」に統合しますか？（グループ編集画面の分割機能で元に戻せます）"
     },
     "chat": {
         "noSelection": "グループを選択してください",
@@ -122,11 +124,6 @@
         "notify": "通知を有効にする",
         "members": "メールアドレス",
         "noMembers": "メールアドレスがありません",
-        "merge": "グループを統合",
-        "mergeDescription": "別のグループをこのグループに統合します。選択したグループのメールアドレスとメッセージがこのグループに移動されます。",
-        "selectGroup": "統合するグループを選択...",
-        "mergeButton": "統合",
-        "mergeConfirm": "「{{source}}」を「{{target}}」に統合しますか？この操作は元に戻せません。",
         "split": "グループを分割",
         "splitDescription": "選択したメールアドレスを新しいグループに分離します。関連するメッセージも一緒に移動されます。",
         "splitButton": "{{count}}件を分割",

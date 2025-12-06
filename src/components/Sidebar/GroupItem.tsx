@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { useTranslation } from 'react-i18next';
 import { UnreadBadge } from './UnreadBadge';
 import type { Group } from '../../types';
 
@@ -7,11 +9,8 @@ interface GroupItemProps {
   isSelected: boolean;
   unreadCount: number;
   onClick: () => void;
-  onDragStart: (groupId: number) => void;
-  onDragEnd: () => void;
-  onDrop: (targetGroupId: number) => void;
-  isDragging: boolean;
-  dragOverGroupId: number | null;
+  isOverlay?: boolean;
+  isOver?: boolean;
 }
 
 export function GroupItem({
@@ -19,66 +18,88 @@ export function GroupItem({
   isSelected,
   unreadCount,
   onClick,
-  onDragStart,
-  onDragEnd,
-  onDrop,
-  isDragging,
-  dragOverGroupId,
+  isOverlay = false,
+  isOver = false,
 }: GroupItemProps) {
-  const [isDragOver, setIsDragOver] = useState(false);
+  const { t } = useTranslation();
+  
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ 
+    id: group.id,
+    data: { group },
+  });
 
-  const handleDragStart = (e: React.DragEvent) => {
-    e.dataTransfer.setData('text/plain', group.id.toString());
-    e.dataTransfer.effectAllowed = 'move';
-    onDragStart(group.id);
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    setIsDragOver(true);
-  };
-
-  const handleDragLeave = () => {
-    setIsDragOver(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
-    const sourceGroupId = parseInt(e.dataTransfer.getData('text/plain'), 10);
-    if (sourceGroupId !== group.id) {
-      onDrop(group.id);
-    }
-  };
-
-  const isDropTarget = isDragging && dragOverGroupId !== group.id && isDragOver;
+  // ドラッグ中のオーバーレイ表示
+  if (isOverlay) {
+    return (
+      <div className="flex items-center gap-3 px-4 py-3 bg-white rounded-xl shadow-2xl ring-2 ring-primary min-w-[200px] rotate-2">
+        <img src="./icon.png" alt="" className="w-8 h-8 flex-shrink-0" />
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold text-text truncate">{group.name}</div>
+        </div>
+        {group.isPinned && (
+          <svg className="w-4 h-4 text-primary" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+          </svg>
+        )}
+      </div>
+    );
+  }
 
   return (
-    <button
-      draggable
-      onDragStart={handleDragStart}
-      onDragEnd={onDragEnd}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-left cursor-grab active:cursor-grabbing ${
-        isSelected ? 'bg-selected' : 'hover:bg-hover'
-      } ${isDragging && dragOverGroupId === group.id ? 'opacity-50' : ''} ${
-        isDropTarget ? 'ring-2 ring-primary ring-offset-2 bg-primary/10' : ''
-      }`}
+      className={`
+        relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg 
+        cursor-grab active:cursor-grabbing select-none
+        transition-all duration-200 ease-out
+        ${isDragging ? 'opacity-40 scale-95 bg-gray-100' : ''}
+        ${isOver && !isDragging ? 'bg-green-100 ring-2 ring-green-500 scale-[1.02]' : ''}
+        ${isSelected && !isDragging && !isOver ? 'bg-selected' : ''}
+        ${!isSelected && !isDragging && !isOver ? 'hover:bg-hover' : ''}
+      `}
     >
-      {/* アイコン */}
-      <img src="./icon.png" alt="" className="w-7 h-7 flex-shrink-0" />
+      {/* ドロップターゲット表示 */}
+      {isOver && !isDragging && (
+        <div className="absolute inset-0 flex items-center justify-center rounded-lg pointer-events-none z-10 bg-green-500/10">
+          <div className="flex items-center gap-2 text-green-600 font-bold text-sm bg-white px-3 py-1.5 rounded-full shadow-lg">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            {t('sidebar.mergeHere')}
+          </div>
+        </div>
+      )}
 
-      <div className="flex-1 min-w-0">
+      {/* アイコン */}
+      <img 
+        src="./icon.png" 
+        alt="" 
+        className={`w-7 h-7 flex-shrink-0 transition-opacity ${isOver && !isDragging ? 'opacity-40' : ''}`}
+      />
+
+      <div className={`flex-1 min-w-0 transition-opacity ${isOver && !isDragging ? 'opacity-40' : ''}`}>
         <div className={`truncate text-sm ${unreadCount > 0 ? 'font-semibold text-text' : 'text-text'}`}>
           {group.name}
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className={`flex items-center gap-2 transition-opacity ${isOver && !isDragging ? 'opacity-40' : ''}`}>
         {group.isPinned && (
           <svg className="w-4 h-4 text-primary" fill="currentColor" viewBox="0 0 24 24">
             <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
@@ -86,6 +107,6 @@ export function GroupItem({
         )}
         <UnreadBadge count={unreadCount} />
       </div>
-    </button>
+    </div>
   );
 }

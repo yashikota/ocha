@@ -40,7 +40,9 @@
         "newGroup": "New Group",
         "noGroups": "No groups",
         "search": "Search...",
-        "dropToMerge": "Drop to merge"
+        "dropToMerge": "Drop to merge",
+        "mergeHere": "Merge here",
+        "mergeConfirm": "Merge \"{{source}}\" into \"{{target}}\"? (You can undo this using the split feature in group settings)"
     },
     "chat": {
         "noSelection": "Select a group",
@@ -122,11 +124,6 @@
         "notify": "Enable notifications",
         "members": "Email Addresses",
         "noMembers": "No email addresses",
-        "merge": "Merge Groups",
-        "mergeDescription": "Merge another group into this one. The selected group's email addresses and messages will be moved to this group.",
-        "selectGroup": "Select a group to merge...",
-        "mergeButton": "Merge",
-        "mergeConfirm": "Merge \"{{source}}\" into \"{{target}}\"? This action cannot be undone.",
         "split": "Split Group",
         "splitDescription": "Separate selected email addresses into a new group. Related messages will also be moved.",
         "splitButton": "Split {{count}} address(es)",

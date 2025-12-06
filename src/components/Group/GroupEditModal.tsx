@@ -97,7 +97,6 @@ export function GroupEditModal() {
   const handleSplit = async () => {
     if (!group || selectedEmails.size === 0 || !newGroupName.trim()) return;
 
-    // 全てのメールアドレスを選択した場合は分割できない
     if (selectedEmails.size === members.length) {
       alert(t('groupEdit.cannotSplitAll'));
       return;
@@ -115,7 +114,6 @@ export function GroupEditModal() {
       const newGroupId = await splitGroup(group.id, Array.from(selectedEmails), newGroupName);
       const updatedGroups = await getGroups();
       setGroups(updatedGroups);
-      // 新しいグループを選択
       setSelectedGroupId(newGroupId);
       handleClose();
     } catch (error) {
@@ -207,7 +205,6 @@ export function GroupEditModal() {
               <h3 className="text-sm font-semibold text-text mb-3">{t('groupEdit.split')}</h3>
               <p className="text-xs text-text-sub mb-3">{t('groupEdit.splitDescription')}</p>
               
-              {/* メールアドレス選択 */}
               <div className="bg-bg rounded-lg p-3 max-h-40 overflow-y-auto mb-3">
                 <ul className="space-y-1">
                   {members.map((member) => (
@@ -232,7 +229,6 @@ export function GroupEditModal() {
                 </ul>
               </div>
 
-              {/* 新しいグループ名 */}
               {selectedEmails.size > 0 && (
                 <div className="space-y-2">
                   <input
@@ -254,7 +250,7 @@ export function GroupEditModal() {
             </section>
           )}
 
-          {/* メールアドレス一覧（分割不可の場合のみ表示） */}
+          {/* メールアドレス一覧（分割不可の場合） */}
           {members.length === 1 && (
             <section>
               <h3 className="text-sm font-semibold text-text mb-3">
