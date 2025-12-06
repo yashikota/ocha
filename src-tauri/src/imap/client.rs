@@ -75,7 +75,7 @@ pub fn find_sent_folder(session: &mut ImapSession) -> Option<String> {
     None
 }
 
-/// 指定UIDより大きいメールを取得
+/// 指定UIDより大きいメールを取得（初回は全件）
 pub fn fetch_messages_since_uid(
     session: &mut ImapSession,
     since_uid: u32,
@@ -100,12 +100,6 @@ pub fn fetch_messages_since_uid(
                 }
             }
         }
-    }
-
-    // 最新100件に制限（初回同期時）
-    if since_uid == 0 && result.len() > 100 {
-        let skip_count = result.len() - 100;
-        result = result.into_iter().skip(skip_count).collect();
     }
 
     Ok(result)

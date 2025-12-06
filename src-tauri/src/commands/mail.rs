@@ -25,7 +25,7 @@ pub async fn sync_messages(app: AppHandle) -> Result<Vec<Message>, String> {
     info!("Starting mail sync for {}", my_email);
 
     // 受信メールを同期
-    let inbox_messages = sync_folder(&my_email, &access_token, FOLDER_INBOX, false).await?;
+    let (inbox_messages, is_initial_sync) = sync_folder(&my_email, &access_token, FOLDER_INBOX, false).await?;
 
     // 送信メールを同期（フォルダを自動検出）
     let mut sent_messages = Vec::new();
@@ -33,7 +33,7 @@ pub async fn sync_messages(app: AppHandle) -> Result<Vec<Message>, String> {
 
     if let Some(ref folder_name) = sent_folder_found {
         match sync_folder(&my_email, &access_token, folder_name, true).await {
-            Ok(messages) => {
+            Ok((messages, _)) => {
                 sent_messages = messages;
             }
             Err(e) => {
@@ -57,9 +57,9 @@ pub async fn sync_messages(app: AppHandle) -> Result<Vec<Message>, String> {
 
     info!("Synced {} messages total", all_saved.len());
 
-    // 新着通知（受信メールのみ）
+    // 新着通知（受信メールのみ、初回同期は除く）
     let new_inbox_count = inbox_messages.len();
-    if new_inbox_count > 0 {
+    if new_inbox_count > 0 && !is_initial_sync {
         let settings = db::with_db(|conn| crate::db::models::Settings::get(conn))
             .map_err(|e| e.to_string())?;
 
@@ -98,10 +98,11 @@ async fn find_sent_folder_name(email: &str, access_token: &str) -> Option<String
     .flatten()
 }
 
-/// 特定のフォルダからメールを同期
-async fn sync_folder(email: &str, access_token: &str, folder: &str, _is_sent: bool) -> Result<Vec<RawMessage>, String> {
+/// 特定のフォルダからメールを同期（初回かどうかも返す）
+async fn sync_folder(email: &str, access_token: &str, folder: &str, _is_sent: bool) -> Result<(Vec<RawMessage>, bool), String> {
     let last_uid = db::with_db(|conn| Message::get_latest_uid(conn, folder))
         .map_err(|e| e.to_string())? as u32;
+    let is_initial = last_uid == 0;
 
     let folder_name = folder.to_string();
     debug!("Syncing folder {} from UID {}", folder_name, last_uid);
@@ -125,7 +126,7 @@ async fn sync_folder(email: &str, access_token: &str, folder: &str, _is_sent: bo
 
     debug!("Fetched {} messages from {}", raw_messages.len(), folder_name);
 
-    Ok(raw_messages)
+    Ok((raw_messages, is_initial))
 }
 
 /// 生メールを保存
