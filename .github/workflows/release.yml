@@ -54,19 +54,19 @@ jobs:
         run: |
           VERSION=${GITHUB_REF_NAME#v}
           echo "Updating version to $VERSION"
-          
+
           # package.json
           sed -i.bak "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" package.json
-          
+
           # tauri.conf.json
           sed -i.bak "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" src-tauri/tauri.conf.json
-          
+
           # Cargo.toml (only the package version, not dependencies)
           sed -i.bak "0,/^version = \"[^\"]*\"/s//version = \"$VERSION\"/" src-tauri/Cargo.toml
-          
+
           # Cleanup backup files
           rm -f package.json.bak src-tauri/tauri.conf.json.bak src-tauri/Cargo.toml.bak
-          
+
           echo "Version updated to $VERSION"
           cat package.json | grep version | head -1
 
