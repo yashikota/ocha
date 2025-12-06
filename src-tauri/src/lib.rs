@@ -32,6 +32,7 @@ pub fn run() {
             commands::get_oauth_config,
             commands::check_auth_status,
             commands::start_oauth,
+            commands::perform_oauth,
             commands::handle_oauth_callback,
             commands::logout,
             commands::refresh_token,

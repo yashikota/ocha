@@ -44,12 +44,8 @@ export function useAuth() {
 
   // OAuth認証を開始
   const startLogin = useCallback(async () => {
-    const authUrl = await tauri.startOAuth();
-    // ブラウザで認証URLを開く
-    window.open(authUrl, '_blank');
-    
-    // コールバックを待機
-    const newAccount = await tauri.handleOAuthCallback();
+    // ブラウザを開いてコールバックを待機（バックエンドで一括処理）
+    const newAccount = await tauri.performOAuth();
     setAccount(newAccount);
     setAuthState('authenticated');
     

@@ -27,6 +27,10 @@ export async function startOAuth(): Promise<string> {
   return invoke('start_oauth');
 }
 
+export async function performOAuth(): Promise<Account> {
+  return invoke('perform_oauth');
+}
+
 export async function handleOAuthCallback(): Promise<Account> {
   return invoke('handle_oauth_callback');
 }
