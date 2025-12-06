@@ -108,7 +108,12 @@ export function MessageItem({ message, onAttachmentClick }: MessageItemProps) {
     return (
       <div className="flex justify-end px-2 py-2 overflow-hidden">
         <div className="max-w-[85%] min-w-0 flex flex-col items-end">
-          <span className="text-xs text-text-sub mb-1">{formatTime(message.receivedAt)}</span>
+          <div className="flex items-center gap-1.5 mb-1">
+            <span className="text-xs text-text-sub">{formatTime(message.receivedAt)}</span>
+            <svg className="w-3.5 h-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+            </svg>
+          </div>
 
           {message.subject && (
             <div className="text-xs text-text-sub mb-1 text-right truncate w-full">
@@ -151,7 +156,10 @@ export function MessageItem({ message, onAttachmentClick }: MessageItemProps) {
   return (
     <div className={`flex justify-start px-2 py-2 overflow-hidden ${!message.isRead ? 'bg-selected/20' : ''}`}>
       <div className="max-w-[85%] min-w-0 flex flex-col items-start">
-        <div className="flex items-center gap-2 mb-1 max-w-full">
+        <div className="flex items-center gap-1.5 mb-1 max-w-full">
+          <svg className="w-3.5 h-3.5 text-text-sub flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+          </svg>
           <span className="text-xs font-medium text-text truncate">{displayName}</span>
           <span className="text-xs text-text-sub flex-shrink-0">{formatTime(message.receivedAt)}</span>
         </div>
