@@ -30,7 +30,7 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
-            info!("Ocha starting up...");
+            info!("ocha starting up...");
 
             // データディレクトリを取得してDBを初期化
             let app_data_dir = app
