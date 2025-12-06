@@ -66,6 +66,12 @@ pub fn run() {
 
             info!("Tray icon initialized");
 
+            // DevToolsを開く（デバッグ用）
+            if let Some(window) = app.get_webview_window("main") {
+                window.open_devtools();
+                info!("DevTools opened");
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

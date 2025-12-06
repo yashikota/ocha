@@ -2,6 +2,7 @@ pub mod models;
 mod schema;
 
 use anyhow::Result;
+use log::info;
 use once_cell::sync::OnceCell;
 use parking_lot::Mutex;
 use rusqlite::Connection;
@@ -9,10 +10,27 @@ use std::path::PathBuf;
 
 static DB: OnceCell<Mutex<Connection>> = OnceCell::new();
 
+/// データベースファイル名を取得（環境とバージョンで分離）
+fn get_db_filename() -> String {
+    let version = env!("CARGO_PKG_VERSION");
+    
+    #[cfg(debug_assertions)]
+    let env = "dev";
+    
+    #[cfg(not(debug_assertions))]
+    let env = "prod";
+    
+    format!("ocha_{}_{}.db", env, version)
+}
+
 /// データベースを初期化する
 pub fn init(app_data_dir: PathBuf) -> Result<()> {
     std::fs::create_dir_all(&app_data_dir)?;
-    let db_path = app_data_dir.join("ocha.db");
+    
+    let db_filename = get_db_filename();
+    let db_path = app_data_dir.join(&db_filename);
+    
+    info!("Using database: {:?}", db_path);
 
     let conn = Connection::open(&db_path)?;
     schema::create_tables(&conn)?;
