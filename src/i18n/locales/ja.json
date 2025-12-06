@@ -48,10 +48,7 @@
         "attachment": "添付ファイル",
         "attachments": "{{count}}件の添付ファイル",
         "expand": "続きを読む",
-        "collapse": "折りたたむ",
-        "showSignature": "署名を表示",
-        "hideSignature": "署名を隠す",
-        "openInGmail": "Gmailで開く"
+        "collapse": "折りたたむ"
     },
     "settings": {
         "title": "設定",

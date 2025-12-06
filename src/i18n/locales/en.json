@@ -47,12 +47,9 @@
         "noSubject": "(No subject)",
         "attachment": "Attachment",
         "attachments": "{{count}} attachments",
-        "expand": "Read more",
-        "collapse": "Collapse",
-        "showSignature": "Show signature",
-        "hideSignature": "Hide signature",
-        "openInGmail": "Open in Gmail"
-    },
+    "expand": "Read more",
+    "collapse": "Collapse"
+  },
     "settings": {
         "title": "Settings",
         "oauth": {
