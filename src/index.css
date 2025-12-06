@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+@theme {
+  /* グリーン基調ライトテーマ */
+  --color-bg: #f8faf8;
+  --color-bg-sidebar: #e8f5e9;
+  --color-primary: #2e7d32;
+  --color-primary-hover: #1b5e20;
+  --color-accent: #4caf50;
+  --color-text: #1a1a1a;
+  --color-text-sub: #666666;
+  --color-border: #c8e6c9;
+  --color-unread: #43a047;
+  --color-white: #ffffff;
+  --color-message-bg: #ffffff;
+  --color-hover: #f0f7f0;
+  --color-selected: #d7eed8;
+  
+  /* フォント */
+  --font-sans: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Meiryo", sans-serif;
+}
+
+/* ベーススタイル */
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+}
+
+/* スクロールバーのスタイリング */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent);
+}
+
+/* アニメーション */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
