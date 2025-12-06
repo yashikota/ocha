@@ -1,0 +1,516 @@
+use anyhow::Result;
+use rusqlite::{params, Connection, OptionalExtension, Row};
+use serde::{Deserialize, Serialize};
+
+// ============================================================================
+// OAuth Config
+// ============================================================================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OAuthConfig {
+    pub client_id: String,
+    pub client_secret: String,
+    pub redirect_uri: String,
+}
+
+impl OAuthConfig {
+    pub fn get(conn: &Connection) -> Result<Option<Self>> {
+        let mut stmt = conn.prepare(
+            "SELECT client_id, client_secret, redirect_uri FROM oauth_config WHERE id = 1",
+        )?;
+        
+        let config = stmt
+            .query_row([], |row| {
+                Ok(OAuthConfig {
+                    client_id: row.get(0)?,
+                    client_secret: row.get(1)?,
+                    redirect_uri: row.get(2)?,
+                })
+            })
+            .optional()?;
+        
+        Ok(config)
+    }
+
+    pub fn save(conn: &Connection, config: &OAuthConfig) -> Result<()> {
+        conn.execute(
+            r#"
+            INSERT INTO oauth_config (id, client_id, client_secret, redirect_uri)
+            VALUES (1, ?1, ?2, ?3)
+            ON CONFLICT(id) DO UPDATE SET
+                client_id = excluded.client_id,
+                client_secret = excluded.client_secret,
+                redirect_uri = excluded.redirect_uri
+            "#,
+            params![config.client_id, config.client_secret, config.redirect_uri],
+        )?;
+        Ok(())
+    }
+}
+
+// ============================================================================
+// Account
+// ============================================================================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Account {
+    pub id: i64,
+    pub email: String,
+    pub access_token: Option<String>,
+    pub refresh_token: Option<String>,
+    pub token_expires_at: Option<String>,
+    pub created_at: String,
+}
+
+impl Account {
+    fn from_row(row: &Row) -> rusqlite::Result<Self> {
+        Ok(Account {
+            id: row.get(0)?,
+            email: row.get(1)?,
+            access_token: row.get(2)?,
+            refresh_token: row.get(3)?,
+            token_expires_at: row.get(4)?,
+            created_at: row.get(5)?,
+        })
+    }
+
+    pub fn get(conn: &Connection) -> Result<Option<Self>> {
+        let mut stmt = conn.prepare(
+            "SELECT id, email, access_token, refresh_token, token_expires_at, created_at 
+             FROM accounts LIMIT 1",
+        )?;
+        
+        let account = stmt.query_row([], Self::from_row).optional()?;
+        Ok(account)
+    }
+
+    pub fn save(conn: &Connection, email: &str, access_token: &str, refresh_token: &str, expires_at: &str) -> Result<i64> {
+        conn.execute(
+            r#"
+            INSERT INTO accounts (email, access_token, refresh_token, token_expires_at)
+            VALUES (?1, ?2, ?3, ?4)
+            ON CONFLICT(email) DO UPDATE SET
+                access_token = excluded.access_token,
+                refresh_token = excluded.refresh_token,
+                token_expires_at = excluded.token_expires_at
+            "#,
+            params![email, access_token, refresh_token, expires_at],
+        )?;
+        Ok(conn.last_insert_rowid())
+    }
+
+    pub fn update_tokens(conn: &Connection, id: i64, access_token: &str, expires_at: &str) -> Result<()> {
+        conn.execute(
+            "UPDATE accounts SET access_token = ?1, token_expires_at = ?2 WHERE id = ?3",
+            params![access_token, expires_at, id],
+        )?;
+        Ok(())
+    }
+
+    pub fn delete(conn: &Connection, id: i64) -> Result<()> {
+        conn.execute("DELETE FROM accounts WHERE id = ?1", params![id])?;
+        Ok(())
+    }
+}
+
+// ============================================================================
+// Group
+// ============================================================================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Group {
+    pub id: i64,
+    pub name: String,
+    pub avatar_color: String,
+    pub is_pinned: bool,
+    pub notify_enabled: bool,
+    pub created_at: String,
+}
+
+impl Group {
+    fn from_row(row: &Row) -> rusqlite::Result<Self> {
+        Ok(Group {
+            id: row.get(0)?,
+            name: row.get(1)?,
+            avatar_color: row.get(2)?,
+            is_pinned: row.get::<_, i32>(3)? != 0,
+            notify_enabled: row.get::<_, i32>(4)? != 0,
+            created_at: row.get(5)?,
+        })
+    }
+
+    pub fn list(conn: &Connection) -> Result<Vec<Self>> {
+        let mut stmt = conn.prepare(
+            "SELECT id, name, avatar_color, is_pinned, notify_enabled, created_at FROM groups ORDER BY created_at DESC",
+        )?;
+        
+        let groups = stmt
+            .query_map([], Self::from_row)?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+        
+        Ok(groups)
+    }
+
+    pub fn get(conn: &Connection, id: i64) -> Result<Option<Self>> {
+        let mut stmt = conn.prepare(
+            "SELECT id, name, avatar_color, is_pinned, notify_enabled, created_at FROM groups WHERE id = ?1",
+        )?;
+        
+        let group = stmt.query_row(params![id], Self::from_row).optional()?;
+        Ok(group)
+    }
+
+    pub fn create(conn: &Connection, name: &str, avatar_color: &str) -> Result<i64> {
+        conn.execute(
+            "INSERT INTO groups (name, avatar_color) VALUES (?1, ?2)",
+            params![name, avatar_color],
+        )?;
+        Ok(conn.last_insert_rowid())
+    }
+
+    pub fn update(conn: &Connection, id: i64, name: &str, avatar_color: &str, is_pinned: bool, notify_enabled: bool) -> Result<()> {
+        conn.execute(
+            "UPDATE groups SET name = ?1, avatar_color = ?2, is_pinned = ?3, notify_enabled = ?4 WHERE id = ?5",
+            params![name, avatar_color, is_pinned as i32, notify_enabled as i32, id],
+        )?;
+        Ok(())
+    }
+
+    pub fn delete(conn: &Connection, id: i64) -> Result<()> {
+        conn.execute("DELETE FROM groups WHERE id = ?1", params![id])?;
+        Ok(())
+    }
+
+    /// メールアドレスからグループを検索
+    pub fn find_by_email(conn: &Connection, email: &str) -> Result<Option<Self>> {
+        let mut stmt = conn.prepare(
+            r#"
+            SELECT g.id, g.name, g.avatar_color, g.is_pinned, g.notify_enabled, g.created_at
+            FROM groups g
+            INNER JOIN group_members gm ON g.id = gm.group_id
+            WHERE gm.email = ?1
+            LIMIT 1
+            "#,
+        )?;
+        
+        let group = stmt.query_row(params![email], Self::from_row).optional()?;
+        Ok(group)
+    }
+
+    /// 新しい送信者のためにグループを自動作成
+    pub fn create_for_email(conn: &Connection, email: &str, display_name: Option<&str>) -> Result<i64> {
+        let name = display_name.unwrap_or(email);
+        let color = generate_color_from_email(email);
+        
+        let group_id = Self::create(conn, name, &color)?;
+        GroupMember::add(conn, group_id, email, display_name)?;
+        
+        Ok(group_id)
+    }
+}
+
+/// メールアドレスからアバターカラーを生成
+fn generate_color_from_email(email: &str) -> String {
+    let colors = [
+        "#2e7d32", "#1565c0", "#6a1b9a", "#c62828", "#ef6c00",
+        "#00838f", "#558b2f", "#4527a0", "#ad1457", "#00695c",
+    ];
+    
+    let hash: u32 = email.bytes().fold(0, |acc, b| acc.wrapping_add(b as u32));
+    let index = (hash as usize) % colors.len();
+    colors[index].to_string()
+}
+
+// ============================================================================
+// Group Member
+// ============================================================================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GroupMember {
+    pub id: i64,
+    pub group_id: i64,
+    pub email: String,
+    pub display_name: Option<String>,
+}
+
+impl GroupMember {
+    fn from_row(row: &Row) -> rusqlite::Result<Self> {
+        Ok(GroupMember {
+            id: row.get(0)?,
+            group_id: row.get(1)?,
+            email: row.get(2)?,
+            display_name: row.get(3)?,
+        })
+    }
+
+    pub fn list_by_group(conn: &Connection, group_id: i64) -> Result<Vec<Self>> {
+        let mut stmt = conn.prepare(
+            "SELECT id, group_id, email, display_name FROM group_members WHERE group_id = ?1",
+        )?;
+        
+        let members = stmt
+            .query_map(params![group_id], Self::from_row)?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+        
+        Ok(members)
+    }
+
+    pub fn add(conn: &Connection, group_id: i64, email: &str, display_name: Option<&str>) -> Result<i64> {
+        conn.execute(
+            "INSERT OR IGNORE INTO group_members (group_id, email, display_name) VALUES (?1, ?2, ?3)",
+            params![group_id, email, display_name],
+        )?;
+        Ok(conn.last_insert_rowid())
+    }
+
+    pub fn remove(conn: &Connection, group_id: i64, email: &str) -> Result<()> {
+        conn.execute(
+            "DELETE FROM group_members WHERE group_id = ?1 AND email = ?2",
+            params![group_id, email],
+        )?;
+        Ok(())
+    }
+}
+
+// ============================================================================
+// Message
+// ============================================================================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Message {
+    pub id: i64,
+    pub uid: i64,
+    pub message_id: Option<String>,
+    pub group_id: Option<i64>,
+    pub from_email: String,
+    pub from_name: Option<String>,
+    pub subject: Option<String>,
+    pub body_text: Option<String>,
+    pub body_html: Option<String>,
+    pub received_at: String,
+    pub is_read: bool,
+    #[serde(default)]
+    pub attachments: Vec<Attachment>,
+}
+
+impl Message {
+    fn from_row(row: &Row) -> rusqlite::Result<Self> {
+        Ok(Message {
+            id: row.get(0)?,
+            uid: row.get(1)?,
+            message_id: row.get(2)?,
+            group_id: row.get(3)?,
+            from_email: row.get(4)?,
+            from_name: row.get(5)?,
+            subject: row.get(6)?,
+            body_text: row.get(7)?,
+            body_html: row.get(8)?,
+            received_at: row.get(9)?,
+            is_read: row.get::<_, i32>(10)? != 0,
+            attachments: vec![],
+        })
+    }
+
+    pub fn list_by_group(conn: &Connection, group_id: i64) -> Result<Vec<Self>> {
+        let mut stmt = conn.prepare(
+            r#"
+            SELECT id, uid, message_id, group_id, from_email, from_name, subject, 
+                   body_text, body_html, received_at, is_read
+            FROM messages
+            WHERE group_id = ?1
+            ORDER BY received_at ASC
+            "#,
+        )?;
+        
+        let mut messages = stmt
+            .query_map(params![group_id], Self::from_row)?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+        
+        // 添付ファイルを取得
+        for msg in &mut messages {
+            msg.attachments = Attachment::list_by_message(conn, msg.id)?;
+        }
+        
+        Ok(messages)
+    }
+
+    pub fn get_latest_uid(conn: &Connection) -> Result<i64> {
+        let uid: i64 = conn
+            .query_row("SELECT COALESCE(MAX(uid), 0) FROM messages", [], |row| row.get(0))?;
+        Ok(uid)
+    }
+
+    pub fn exists_by_message_id(conn: &Connection, message_id: &str) -> Result<bool> {
+        let count: i32 = conn.query_row(
+            "SELECT COUNT(*) FROM messages WHERE message_id = ?1",
+            params![message_id],
+            |row| row.get(0),
+        )?;
+        Ok(count > 0)
+    }
+
+    pub fn insert(conn: &Connection, msg: &NewMessage) -> Result<i64> {
+        conn.execute(
+            r#"
+            INSERT INTO messages (uid, message_id, group_id, from_email, from_name, subject, body_text, body_html, received_at)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+            "#,
+            params![
+                msg.uid,
+                msg.message_id,
+                msg.group_id,
+                msg.from_email,
+                msg.from_name,
+                msg.subject,
+                msg.body_text,
+                msg.body_html,
+                msg.received_at,
+            ],
+        )?;
+        Ok(conn.last_insert_rowid())
+    }
+
+    pub fn mark_as_read(conn: &Connection, id: i64) -> Result<()> {
+        conn.execute("UPDATE messages SET is_read = 1 WHERE id = ?1", params![id])?;
+        Ok(())
+    }
+
+    pub fn mark_group_as_read(conn: &Connection, group_id: i64) -> Result<()> {
+        conn.execute("UPDATE messages SET is_read = 1 WHERE group_id = ?1", params![group_id])?;
+        Ok(())
+    }
+
+    pub fn get_unread_counts(conn: &Connection) -> Result<Vec<(i64, i64)>> {
+        let mut stmt = conn.prepare(
+            "SELECT group_id, COUNT(*) FROM messages WHERE is_read = 0 AND group_id IS NOT NULL GROUP BY group_id",
+        )?;
+        
+        let counts = stmt
+            .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+        
+        Ok(counts)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct NewMessage {
+    pub uid: i64,
+    pub message_id: Option<String>,
+    pub group_id: Option<i64>,
+    pub from_email: String,
+    pub from_name: Option<String>,
+    pub subject: Option<String>,
+    pub body_text: Option<String>,
+    pub body_html: Option<String>,
+    pub received_at: String,
+}
+
+// ============================================================================
+// Attachment
+// ============================================================================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Attachment {
+    pub id: i64,
+    pub message_id: i64,
+    pub filename: String,
+    pub mime_type: Option<String>,
+    pub size: i64,
+    pub local_path: Option<String>,
+}
+
+impl Attachment {
+    fn from_row(row: &Row) -> rusqlite::Result<Self> {
+        Ok(Attachment {
+            id: row.get(0)?,
+            message_id: row.get(1)?,
+            filename: row.get(2)?,
+            mime_type: row.get(3)?,
+            size: row.get(4)?,
+            local_path: row.get(5)?,
+        })
+    }
+
+    pub fn list_by_message(conn: &Connection, message_id: i64) -> Result<Vec<Self>> {
+        let mut stmt = conn.prepare(
+            "SELECT id, message_id, filename, mime_type, size, local_path FROM attachments WHERE message_id = ?1",
+        )?;
+        
+        let attachments = stmt
+            .query_map(params![message_id], Self::from_row)?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+        
+        Ok(attachments)
+    }
+
+    pub fn insert(conn: &Connection, message_id: i64, filename: &str, mime_type: Option<&str>, size: i64) -> Result<i64> {
+        conn.execute(
+            "INSERT INTO attachments (message_id, filename, mime_type, size) VALUES (?1, ?2, ?3, ?4)",
+            params![message_id, filename, mime_type, size],
+        )?;
+        Ok(conn.last_insert_rowid())
+    }
+
+    pub fn update_local_path(conn: &Connection, id: i64, local_path: &str) -> Result<()> {
+        conn.execute(
+            "UPDATE attachments SET local_path = ?1 WHERE id = ?2",
+            params![local_path, id],
+        )?;
+        Ok(())
+    }
+}
+
+// ============================================================================
+// Settings
+// ============================================================================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Settings {
+    pub notifications_enabled: bool,
+    pub sound_enabled: bool,
+    pub sync_interval_minutes: i32,
+}
+
+impl Settings {
+    pub fn get(conn: &Connection) -> Result<Self> {
+        let settings = conn.query_row(
+            "SELECT notifications_enabled, sound_enabled, sync_interval_minutes FROM settings WHERE id = 1",
+            [],
+            |row| {
+                Ok(Settings {
+                    notifications_enabled: row.get::<_, i32>(0)? != 0,
+                    sound_enabled: row.get::<_, i32>(1)? != 0,
+                    sync_interval_minutes: row.get(2)?,
+                })
+            },
+        )?;
+        Ok(settings)
+    }
+
+    pub fn save(conn: &Connection, settings: &Settings) -> Result<()> {
+        conn.execute(
+            r#"
+            UPDATE settings SET 
+                notifications_enabled = ?1,
+                sound_enabled = ?2,
+                sync_interval_minutes = ?3
+            WHERE id = 1
+            "#,
+            params![
+                settings.notifications_enabled as i32,
+                settings.sound_enabled as i32,
+                settings.sync_interval_minutes,
+            ],
+        )?;
+        Ok(())
+    }
+}
+
