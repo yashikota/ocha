@@ -10,17 +10,17 @@ use std::path::PathBuf;
 
 static DB: OnceCell<Mutex<Connection>> = OnceCell::new();
 
-/// データベースファイル名を取得（環境とバージョンで分離）
-fn get_db_filename() -> String {
-    let version = env!("CARGO_PKG_VERSION");
-
+/// データベースファイル名を取得（環境で分離）
+fn get_db_filename() -> &'static str {
     #[cfg(debug_assertions)]
-    let env = "dev";
-
+    {
+        "ocha_dev.db"
+    }
+    
     #[cfg(not(debug_assertions))]
-    let env = "prod";
-
-    format!("ocha_{}_{}.db", env, version)
+    {
+        "ocha.db"
+    }
 }
 
 /// データベースを初期化する
