@@ -7,6 +7,8 @@ mod oauth;
 
 use log::{info, error};
 use tauri::Manager;
+use tauri::menu::{Menu, MenuItem};
+use tauri::tray::TrayIconBuilder;
 use tauri_plugin_log::{Target, TargetKind};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -44,6 +46,25 @@ pub fn run() {
             }
 
             info!("Database initialized successfully");
+
+            // タスクトレイアイコンを設定
+            let quit_item = MenuItem::with_id(app, "quit", "終了", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[&quit_item])?;
+            
+            let _tray = TrayIconBuilder::new()
+                .icon(app.default_window_icon().unwrap().clone())
+                .menu(&menu)
+                .show_menu_on_left_click(false)
+                .on_menu_event(|app, event| match event.id.as_ref() {
+                    "quit" => {
+                        info!("Quit from tray menu");
+                        app.exit(0);
+                    }
+                    _ => {}
+                })
+                .build(app)?;
+
+            info!("Tray icon initialized");
 
             Ok(())
         })
