@@ -58,7 +58,7 @@ export function Sidebar({ onRefresh }: SidebarProps) {
     }
   };
 
-  const handleDragEnd = async (event: DragEndEvent) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
     setActiveGroup(null);
@@ -75,21 +75,29 @@ export function Sidebar({ onRefresh }: SidebarProps) {
       target: targetGroup.name,
     });
 
-    if (!window.confirm(confirmMessage)) return;
-
-    setMerging(true);
-    try {
-      await mergeGroups(Number(over.id), Number(active.id));
-      const updatedGroups = await getGroups();
-      setGroups(updatedGroups);
-      await fetchUnreadCounts();
-      selectGroup(Number(over.id));
-    } catch (error) {
-      console.error('Failed to merge groups:', error);
-      alert(t('common.error') + ': ' + error);
-    } finally {
-      setMerging(false);
+    const confirmed = window.confirm(confirmMessage);
+    if (!confirmed) {
+      return;
     }
+
+    // 確認後に非同期で統合を実行
+    const doMerge = async () => {
+      setMerging(true);
+      try {
+        await mergeGroups(Number(over.id), Number(active.id));
+        const updatedGroups = await getGroups();
+        setGroups(updatedGroups);
+        await fetchUnreadCounts();
+        selectGroup(Number(over.id));
+      } catch (error) {
+        console.error('Failed to merge groups:', error);
+        alert(t('common.error') + ': ' + error);
+      } finally {
+        setMerging(false);
+      }
+    };
+
+    doMerge();
   };
 
   const handleDragCancel = () => {
