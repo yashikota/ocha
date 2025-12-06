@@ -1,4 +1,4 @@
-use log::{info, debug, error};
+use log::{info, debug, error, warn};
 use tauri::{AppHandle, Emitter};
 
 use crate::db::{self, models::{Account, Attachment, Group, Message, NewMessage}};
@@ -7,7 +7,14 @@ use crate::mail::parse_email;
 use crate::notification;
 
 const FOLDER_INBOX: &str = "INBOX";
-const FOLDER_SENT: &str = "[Gmail]/Sent Mail";
+// Gmailの送信済みフォルダ名（ロケールによって異なる）
+const SENT_FOLDER_NAMES: &[&str] = &[
+    "[Gmail]/Sent Mail",      // English
+    "[Gmail]/送信済みメール",   // Japanese
+    "[Gmail]/Sent",           // Alternative
+    "Sent",                   // Generic
+    "Sent Items",             // Generic
+];
 
 /// メールを同期（受信・送信両方）
 #[tauri::command]
@@ -15,39 +22,61 @@ pub async fn sync_messages(app: AppHandle) -> Result<Vec<Message>, String> {
     let account = db::with_db(|conn| Account::get(conn))
         .map_err(|e| e.to_string())?
         .ok_or("Not authenticated")?;
-
+    
     let access_token = account.access_token
         .as_ref()
         .ok_or("No access token")?
         .clone();
-
+    
     let my_email = account.email.clone();
-
+    
     info!("Starting mail sync for {}", my_email);
-
+    
     // 受信メールを同期
     let inbox_messages = sync_folder(&my_email, &access_token, FOLDER_INBOX, false).await?;
-
-    // 送信メールを同期
-    let sent_messages = sync_folder(&my_email, &access_token, FOLDER_SENT, true).await?;
-
+    
+    // 送信メールを同期（複数のフォルダ名を試す）
+    let mut sent_messages = Vec::new();
+    let mut sent_folder_found = None;
+    
+    for folder_name in SENT_FOLDER_NAMES {
+        match sync_folder(&my_email, &access_token, folder_name, true).await {
+            Ok(messages) => {
+                info!("Found sent folder: {}", folder_name);
+                sent_messages = messages;
+                sent_folder_found = Some(folder_name.to_string());
+                break;
+            }
+            Err(e) => {
+                debug!("Sent folder {} not found: {}", folder_name, e);
+                continue;
+            }
+        }
+    }
+    
+    if sent_folder_found.is_none() {
+        warn!("Could not find sent mail folder, skipping sent mail sync");
+    }
+    
     // メールを保存
     let mut all_saved = Vec::new();
-
-    let saved_inbox = save_messages(&inbox_messages, &my_email, false)?;
+    
+    let saved_inbox = save_messages(&inbox_messages, &my_email, false, FOLDER_INBOX)?;
     all_saved.extend(saved_inbox);
-
-    let saved_sent = save_messages(&sent_messages, &my_email, true)?;
-    all_saved.extend(saved_sent);
-
+    
+    if let Some(ref folder) = sent_folder_found {
+        let saved_sent = save_messages(&sent_messages, &my_email, true, folder)?;
+        all_saved.extend(saved_sent);
+    }
+    
     info!("Synced {} messages total", all_saved.len());
-
+    
     // 新着通知（受信メールのみ）
     let new_inbox_count = inbox_messages.len();
     if new_inbox_count > 0 {
         let settings = db::with_db(|conn| crate::db::models::Settings::get(conn))
             .map_err(|e| e.to_string())?;
-
+        
         if settings.notifications_enabled {
             if new_inbox_count == 1 {
                 if let Some(msg) = all_saved.iter().find(|m| !m.is_sent) {
@@ -60,12 +89,12 @@ pub async fn sync_messages(app: AppHandle) -> Result<Vec<Message>, String> {
             }
         }
     }
-
+    
     // フロントエンドに通知
     if !all_saved.is_empty() {
         let _ = app.emit("new-messages", all_saved.len());
     }
-
+    
     Ok(all_saved)
 }
 
@@ -100,9 +129,8 @@ async fn sync_folder(email: &str, access_token: &str, folder: &str, _is_sent: bo
 }
 
 /// 生メールを保存
-fn save_messages(raw_messages: &[RawMessage], my_email: &str, is_sent: bool) -> Result<Vec<Message>, String> {
+fn save_messages(raw_messages: &[RawMessage], my_email: &str, is_sent: bool, folder: &str) -> Result<Vec<Message>, String> {
     let mut saved = Vec::new();
-    let folder = if is_sent { FOLDER_SENT } else { FOLDER_INBOX };
 
     for raw in raw_messages {
         // メールをパース
@@ -242,7 +270,7 @@ pub async fn start_idle_watch(app: AppHandle) -> Result<(), String> {
         last_uid,
         move |raw_messages| {
             // 新着メールを処理
-            if let Ok(saved) = save_messages(&raw_messages, &my_email, false) {
+            if let Ok(saved) = save_messages(&raw_messages, &my_email, false, FOLDER_INBOX) {
                 if !saved.is_empty() {
                     // 通知
                     let settings = db::with_db(|conn| crate::db::models::Settings::get(conn));
