@@ -1,3 +1,4 @@
+use log::{info, error, debug};
 use tauri::AppHandle;
 use tauri_plugin_opener::OpenerExt;
 
@@ -63,29 +64,60 @@ pub fn start_oauth() -> Result<String, String> {
 /// OAuth認証を実行（ブラウザを開いてコールバックを待つ）
 #[tauri::command]
 pub async fn perform_oauth(app: AppHandle) -> Result<Account, String> {
+    info!("Starting OAuth flow...");
+    
     let config = db::with_db(|conn| OAuthConfig::get(conn))
-        .map_err(|e| e.to_string())?
-        .ok_or("OAuth config not found")?;
-
+        .map_err(|e| {
+            error!("Failed to get config: {}", e);
+            e.to_string()
+        })?
+        .ok_or_else(|| {
+            error!("OAuth config not found");
+            "OAuth config not found".to_string()
+        })?;
+    
+    debug!("Config loaded, generating auth URL...");
+    
     // 認証URLを生成
     let auth_url = oauth::start_oauth_flow(&config)
-        .map_err(|e| e.to_string())?;
-
+        .map_err(|e| {
+            error!("Failed to generate auth URL: {}", e);
+            e.to_string()
+        })?;
+    
+    info!("Auth URL generated, opening browser...");
+    debug!("URL: {}", &auth_url);
+    
     // ブラウザで認証URLを開く
     app.opener()
         .open_url(&auth_url, None::<&str>)
-        .map_err(|e| format!("Failed to open browser: {}", e))?;
-
+        .map_err(|e| {
+            error!("Failed to open browser: {}", e);
+            format!("Failed to open browser: {}", e)
+        })?;
+    
+    info!("Browser opened, waiting for callback on port 8234...");
+    
     // コールバックを待機してトークンを取得
     let token_result = oauth::handle_oauth_callback(&config)
         .await
-        .map_err(|e| e.to_string())?;
-
+        .map_err(|e| {
+            error!("Callback failed: {}", e);
+            e.to_string()
+        })?;
+    
+    info!("Token received, getting user info...");
+    
     // ユーザー情報を取得
     let user_info = oauth::get_user_info(&token_result.access_token)
         .await
-        .map_err(|e| e.to_string())?;
-
+        .map_err(|e| {
+            error!("Failed to get user info: {}", e);
+            e.to_string()
+        })?;
+    
+    info!("User info received: {}", user_info.email);
+    
     // アカウントを保存
     db::with_db(|conn| {
         Account::save(
@@ -95,13 +127,18 @@ pub async fn perform_oauth(app: AppHandle) -> Result<Account, String> {
             &token_result.refresh_token,
             &token_result.expires_at,
         )
-    }).map_err(|e| e.to_string())?;
-
+    }).map_err(|e| {
+        error!("Failed to save account: {}", e);
+        e.to_string()
+    })?;
+    
+    info!("Account saved successfully!");
+    
     // アカウントを取得して返す
     let account = db::with_db(|conn| Account::get(conn))
         .map_err(|e| e.to_string())?
         .ok_or("Account not found after save")?;
-
+    
     Ok(account)
 }
 

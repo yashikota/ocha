@@ -5,24 +5,45 @@ mod mail;
 mod notification;
 mod oauth;
 
+use log::{info, error};
 use tauri::Manager;
+use tauri_plugin_log::{Target, TargetKind};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .targets([
+                    Target::new(TargetKind::Stdout),
+                    Target::new(TargetKind::LogDir { file_name: None }),
+                    Target::new(TargetKind::Webview),
+                ])
+                .level(log::LevelFilter::Debug)
+                .build(),
+        )
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
+            info!("Ocha starting up...");
+            
             // データディレクトリを取得してDBを初期化
             let app_data_dir = app
                 .path()
                 .app_data_dir()
                 .expect("Failed to get app data directory");
 
-            db::init(app_data_dir).expect("Failed to initialize database");
+            info!("App data dir: {:?}", app_data_dir);
+            
+            if let Err(e) = db::init(app_data_dir) {
+                error!("Failed to initialize database: {}", e);
+                return Err(e.into());
+            }
+            
+            info!("Database initialized successfully");
 
             Ok(())
         })

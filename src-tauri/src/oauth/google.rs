@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use log::{info, error, debug};
 use once_cell::sync::OnceCell;
 use parking_lot::Mutex;
 use rand::Rng;
@@ -72,31 +73,61 @@ pub fn start_oauth_flow(config: &OAuthConfig) -> Result<String> {
 pub async fn handle_oauth_callback(config: &OAuthConfig) -> Result<TokenResult> {
     // リダイレクトURIからポートを抽出
     let port = extract_port(&config.redirect_uri)?;
-    let listener = TcpListener::bind(format!("127.0.0.1:{}", port))?;
+    info!("Starting callback listener on port {}", port);
+    
+    let listener = TcpListener::bind(format!("127.0.0.1:{}", port))
+        .map_err(|e| {
+            error!("Failed to bind to port {}: {}", port, e);
+            anyhow!("Failed to bind to port {}: {}", port, e)
+        })?;
+    
+    info!("Listener bound, waiting for callback...");
     
     // 接続を待機
-    let (mut stream, _) = listener.accept()?;
+    let (mut stream, addr) = listener.accept()
+        .map_err(|e| {
+            error!("Failed to accept connection: {}", e);
+            anyhow!("Failed to accept connection: {}", e)
+        })?;
+    
+    info!("Connection received from {}", addr);
     
     let mut reader = BufReader::new(&stream);
     let mut request_line = String::new();
     reader.read_line(&mut request_line)?;
     
+    debug!("Request line: {}", request_line.trim());
+    
     // リクエストからコードとstateを抽出
-    let (code, state) = parse_callback_request(&request_line)?;
+    let (code, state) = parse_callback_request(&request_line)
+        .map_err(|e| {
+            error!("Failed to parse callback request: {}", e);
+            e
+        })?;
+    
+    debug!("Extracted code and state from callback");
     
     // CSRF検証
     let auth_state = get_auth_state().lock().take()
-        .ok_or_else(|| anyhow!("No pending OAuth flow"))?;
+        .ok_or_else(|| {
+            error!("No pending OAuth flow found");
+            anyhow!("No pending OAuth flow")
+        })?;
     
     if state != auth_state.state {
+        error!("CSRF token mismatch: expected {}, got {}", auth_state.state, state);
         return Err(anyhow!("CSRF token mismatch"));
     }
+    
+    info!("CSRF token verified");
     
     // 成功レスポンスを返す
     let response = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\n\r\n\
         <html><body><h1>認証成功!</h1><p>このウィンドウを閉じてアプリに戻ってください。</p></body></html>";
     stream.write_all(response.as_bytes())?;
     drop(stream);
+    
+    info!("Exchanging code for tokens...");
     
     // トークンを取得
     let client = reqwest::Client::new();
@@ -114,9 +145,13 @@ pub async fn handle_oauth_callback(config: &OAuthConfig) -> Result<TokenResult> 
         .await?;
     
     if !response.status().is_success() {
+        let status = response.status();
         let error_text = response.text().await?;
+        error!("Token exchange failed with status {}: {}", status, error_text);
         return Err(anyhow!("Token exchange failed: {}", error_text));
     }
+    
+    info!("Token exchange successful");
     
     let token_response: TokenResponse = response.json().await?;
     
@@ -125,7 +160,10 @@ pub async fn handle_oauth_callback(config: &OAuthConfig) -> Result<TokenResult> 
     Ok(TokenResult {
         access_token: token_response.access_token,
         refresh_token: token_response.refresh_token
-            .ok_or_else(|| anyhow!("No refresh token received"))?,
+            .ok_or_else(|| {
+                error!("No refresh token received");
+                anyhow!("No refresh token received")
+            })?,
         expires_at: expires_at.to_rfc3339(),
     })
 }
