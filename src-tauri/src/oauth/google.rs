@@ -11,6 +11,8 @@ use crate::db::models::OAuthConfig;
 const AUTH_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
 const GMAIL_SCOPE: &str = "https://mail.google.com/";
+const USERINFO_EMAIL_SCOPE: &str = "https://www.googleapis.com/auth/userinfo.email";
+const USERINFO_PROFILE_SCOPE: &str = "https://www.googleapis.com/auth/userinfo.profile";
 
 // 認証状態を保持
 static AUTH_STATE: OnceCell<Mutex<Option<AuthState>>> = OnceCell::new();
@@ -56,12 +58,13 @@ pub fn start_oauth_flow(config: &OAuthConfig) -> Result<String> {
         state: state.clone(),
     });
     
+    let scope = format!("{} {} {}", GMAIL_SCOPE, USERINFO_EMAIL_SCOPE, USERINFO_PROFILE_SCOPE);
     let auth_url = format!(
         "{}?client_id={}&redirect_uri={}&response_type=code&scope={}&access_type=offline&prompt=consent&state={}&code_challenge={}&code_challenge_method=S256",
         AUTH_URL,
         urlencoding::encode(&config.client_id),
         urlencoding::encode(&config.redirect_uri),
-        urlencoding::encode(GMAIL_SCOPE),
+        urlencoding::encode(&scope),
         urlencoding::encode(&state),
         urlencoding::encode(&code_challenge),
     );
@@ -255,11 +258,26 @@ pub async fn get_user_info(access_token: &str) -> Result<UserInfo> {
         .get("https://www.googleapis.com/oauth2/v2/userinfo")
         .bearer_auth(access_token)
         .send()
-        .await?
-        .json::<UserInfo>()
         .await?;
     
-    Ok(response)
+    let status = response.status();
+    let text = response.text().await?;
+    
+    debug!("User info response status: {}", status);
+    debug!("User info response body: {}", text);
+    
+    if !status.is_success() {
+        error!("Failed to get user info: {}", text);
+        return Err(anyhow!("Failed to get user info: {}", text));
+    }
+    
+    let user_info: UserInfo = serde_json::from_str(&text)
+        .map_err(|e| {
+            error!("Failed to parse user info: {} - body: {}", e, text);
+            anyhow!("Failed to parse user info: {}", e)
+        })?;
+    
+    Ok(user_info)
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
