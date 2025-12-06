@@ -244,11 +244,9 @@ fn parse_callback_request(request_line: &str) -> Result<(String, String)> {
     Ok((code, state))
 }
 
-/// XOAUTH2認証文字列を生成
+/// XOAUTH2認証文字列を生成（生文字列、Base64エンコードはimapクレートが行う）
 pub fn build_xoauth2_string(email: &str, access_token: &str) -> String {
-    use base64::Engine;
-    let auth_string = format!("user={}\x01auth=Bearer {}\x01\x01", email, access_token);
-    base64::engine::general_purpose::STANDARD.encode(auth_string.as_bytes())
+    format!("user={}\x01auth=Bearer {}\x01\x01", email, access_token)
 }
 
 /// ユーザー情報を取得

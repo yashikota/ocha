@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Result};
 use imap::Session;
+use log::{info, error, debug};
 use native_tls::TlsStream;
 use std::net::TcpStream;
 
@@ -12,16 +13,29 @@ pub type ImapSession = Session<TlsStream<TcpStream>>;
 
 /// Gmail IMAPに接続
 pub fn connect(email: &str, access_token: &str) -> Result<ImapSession> {
+    info!("Connecting to IMAP server {}:{}", IMAP_SERVER, IMAP_PORT);
+    
     let tls = native_tls::TlsConnector::new()?;
-    let client = imap::connect((IMAP_SERVER, IMAP_PORT), IMAP_SERVER, &tls)?;
+    let client = imap::connect((IMAP_SERVER, IMAP_PORT), IMAP_SERVER, &tls)
+        .map_err(|e| {
+            error!("Failed to connect to IMAP server: {}", e);
+            anyhow!("Failed to connect to IMAP server: {}", e)
+        })?;
+    
+    info!("Connected to IMAP server, authenticating...");
+    debug!("Email: {}", email);
     
     // XOAUTH2で認証
     let auth_string = build_xoauth2_string(email, access_token);
     let authenticator = XOAuth2Authenticator { auth_string };
     let session = client
         .authenticate("XOAUTH2", &authenticator)
-        .map_err(|e| anyhow!("IMAP authentication failed: {:?}", e))?;
+        .map_err(|e| {
+            error!("IMAP authentication failed: {:?}", e);
+            anyhow!("IMAP authentication failed: {:?}", e)
+        })?;
     
+    info!("IMAP authentication successful");
     Ok(session)
 }
 
