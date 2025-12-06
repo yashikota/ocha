@@ -72,47 +72,92 @@ export function MessageItem({ message, onAttachmentClick }: MessageItemProps) {
       ? mainBody.slice(0, MAX_LENGTH) + '...'
       : mainBody;
 
-  return (
-    <article className={`p-4 hover:bg-hover transition-colors ${!message.isRead && !isSent ? 'bg-selected/30' : ''}`}>
-      <div className="flex items-center gap-2 mb-1">
-        <span className="font-semibold text-text truncate">
-          {isSent ? '自分' : displayName}
-        </span>
-        <span className="text-xs text-text-sub">{formatTime(message.receivedAt)}</span>
-      </div>
+  // 送信メッセージ（右側・緑）
+  if (isSent) {
+    return (
+      <div className="flex justify-end px-4 py-2">
+        <div className="max-w-[75%] flex flex-col items-end">
+          <span className="text-xs text-text-sub mb-1">{formatTime(message.receivedAt)}</span>
+          
+          {message.subject && (
+            <div className="text-xs text-text-sub mb-1 text-right">
+              {message.subject}
+            </div>
+          )}
+          
+          <div className="bg-primary text-white rounded-2xl rounded-tr-sm px-4 py-2">
+            <p className="text-sm whitespace-pre-wrap break-words">
+              {displayContent}
+            </p>
 
-      {message.subject && (
-        <div className="text-sm font-medium text-text mb-1 overflow-hidden text-ellipsis whitespace-nowrap">
-          {message.subject}
+            {needsTruncation && (
+              <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="text-xs text-white/70 hover:text-white mt-1 underline"
+              >
+                {isExpanded ? t('chat.collapse') : t('chat.expand')}
+              </button>
+            )}
+          </div>
+
+          {message.attachments && message.attachments.length > 0 && (
+            <div className="mt-1 flex flex-wrap gap-1 justify-end">
+              {message.attachments.map((attachment) => (
+                <AttachmentCard
+                  key={attachment.id}
+                  attachment={attachment}
+                  onClick={() => onAttachmentClick?.(attachment.id)}
+                />
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </div>
+    );
+  }
 
-      <div className={`rounded-lg px-3 py-2 ${isSent ? 'bg-primary/10 border border-primary/20' : 'bg-bg-sidebar border border-border'}`}>
-        <p className="text-sm text-text whitespace-pre-wrap break-words overflow-hidden">
-          {displayContent}
-        </p>
+  // 受信メッセージ（左側・グレー）
+  return (
+    <div className={`flex justify-start px-4 py-2 ${!message.isRead ? 'bg-selected/20' : ''}`}>
+      <div className="max-w-[75%] flex flex-col items-start">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-xs font-medium text-text">{displayName}</span>
+          <span className="text-xs text-text-sub">{formatTime(message.receivedAt)}</span>
+        </div>
+        
+        {message.subject && (
+          <div className="text-xs text-text-sub mb-1">
+            {message.subject}
+          </div>
+        )}
+        
+        <div className="bg-gray-100 text-text rounded-2xl rounded-tl-sm px-4 py-2">
+          <p className="text-sm whitespace-pre-wrap break-words">
+            {displayContent}
+          </p>
 
-        {needsTruncation && (
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="text-xs text-primary hover:text-primary-hover mt-2 underline block"
-          >
-            {isExpanded ? t('chat.collapse') : t('chat.expand')}
-          </button>
+          {needsTruncation && (
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="text-xs text-primary hover:text-primary-hover mt-1 underline"
+            >
+              {isExpanded ? t('chat.collapse') : t('chat.expand')}
+            </button>
+          )}
+        </div>
+
+        {message.attachments && message.attachments.length > 0 && (
+          <div className="mt-1 flex flex-wrap gap-1">
+            {message.attachments.map((attachment) => (
+              <AttachmentCard
+                key={attachment.id}
+                attachment={attachment}
+                onClick={() => onAttachmentClick?.(attachment.id)}
+              />
+            ))}
+          </div>
         )}
       </div>
-
-      {message.attachments && message.attachments.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-2">
-          {message.attachments.map((attachment) => (
-            <AttachmentCard
-              key={attachment.id}
-              attachment={attachment}
-              onClick={() => onAttachmentClick?.(attachment.id)}
-            />
-          ))}
-        </div>
-      )}
-    </article>
+    </div>
   );
 }
