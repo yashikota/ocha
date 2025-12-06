@@ -33,20 +33,29 @@ const formatTime = (dateString: string): string => {
   });
 };
 
-// 署名の開始位置を検出
-const findSignatureStart = (text: string): number => {
+// 署名・引用ヘッダーの開始位置を検出
+const findFooterStart = (text: string): number => {
+  // 確実な引用/署名パターン（行頭から完全一致）
   const patterns = [
-    /\n--\s*\n/,
-    /\n_{3,}\s*\n/,
-    /\nSent from my /i,
-    /\niPhoneから送信/,
-    /\n--\s*$/,
+    /\n--\s*\n/,                           // 標準署名区切り
+    /\n_{3,}\s*\n/,                         // アンダースコア区切り
+    /\nSent from my /i,                     // iOS署名
+    /\niPhoneから送信/,                      // 日本語iOS
+    /\nOn .+wrote:\s*\n/i,                  // Gmail引用ヘッダー
+    /\n\d{4}年\d{1,2}月\d{1,2}日.+:\s*\n/,   // 日本語Gmail引用
+    /\n-{3,} ?Original Message ?-{3,}/i,   // Outlook引用
+    /\n_{3,} ?Original Message ?_{3,}/i,   // Outlook引用
+    /\nFrom: .+\nSent: /i,                  // Outlook形式引用ヘッダー
+    /\n差出人: .+\n送信日時: /,              // 日本語Outlook
   ];
-
+  
   for (const pattern of patterns) {
     const match = text.search(pattern);
-    if (match !== -1) return match;
+    if (match !== -1) {
+      return match;
+    }
   }
+  
   return -1;
 };
 
@@ -62,10 +71,10 @@ export function MessageItem({ message, onAttachmentClick }: MessageItemProps) {
     : (message.fromName || message.fromEmail);
 
   const fullBody = message.bodyText || '';
-  const signatureStart = findSignatureStart(fullBody);
-  const hasSignature = signatureStart !== -1;
-  const mainBody = hasSignature ? fullBody.slice(0, signatureStart).trim() : fullBody;
-  const needsTruncation = mainBody.length > MAX_LENGTH || hasSignature;
+  const footerStart = findFooterStart(fullBody);
+  const hasFooter = footerStart !== -1;
+  const mainBody = hasFooter ? fullBody.slice(0, footerStart).trim() : fullBody;
+  const needsTruncation = mainBody.length > MAX_LENGTH || hasFooter;
   const displayContent = isExpanded
     ? fullBody
     : mainBody.length > MAX_LENGTH
@@ -78,13 +87,13 @@ export function MessageItem({ message, onAttachmentClick }: MessageItemProps) {
       <div className="flex justify-end px-4 py-2">
         <div className="max-w-[75%] flex flex-col items-end">
           <span className="text-xs text-text-sub mb-1">{formatTime(message.receivedAt)}</span>
-          
+
           {message.subject && (
             <div className="text-xs text-text-sub mb-1 text-right">
               {message.subject}
             </div>
           )}
-          
+
           <div className="bg-primary text-white rounded-2xl rounded-tr-sm px-4 py-2">
             <p className="text-sm whitespace-pre-wrap break-words">
               {displayContent}
@@ -124,13 +133,13 @@ export function MessageItem({ message, onAttachmentClick }: MessageItemProps) {
           <span className="text-xs font-medium text-text">{displayName}</span>
           <span className="text-xs text-text-sub">{formatTime(message.receivedAt)}</span>
         </div>
-        
+
         {message.subject && (
           <div className="text-xs text-text-sub mb-1">
             {message.subject}
           </div>
         )}
-        
+
         <div className="bg-gray-100 text-text rounded-2xl rounded-tl-sm px-4 py-2">
           <p className="text-sm whitespace-pre-wrap break-words">
             {displayContent}
