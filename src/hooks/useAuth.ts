@@ -1,0 +1,81 @@
+import { useAtom } from 'jotai';
+import { useCallback, useEffect } from 'react';
+import { authStateAtom, oauthConfigAtom, accountAtom } from '../atoms';
+import * as tauri from './useTauri';
+
+export function useAuth() {
+  const [authState, setAuthState] = useAtom(authStateAtom);
+  const [oauthConfig, setOAuthConfig] = useAtom(oauthConfigAtom);
+  const [account, setAccount] = useAtom(accountAtom);
+
+  // 認証状態を確認
+  const checkStatus = useCallback(async () => {
+    try {
+      setAuthState('loading');
+      const status = await tauri.checkAuthStatus();
+      
+      if (!status.hasOauthConfig) {
+        setAuthState('needs_config');
+        return;
+      }
+      
+      if (status.isAuthenticated && status.account) {
+        setAccount(status.account);
+        setAuthState('authenticated');
+      } else {
+        setAuthState('unauthenticated');
+      }
+    } catch (error) {
+      console.error('Failed to check auth status:', error);
+      setAuthState('needs_config');
+    }
+  }, [setAuthState, setAccount]);
+
+  // OAuth設定を保存
+  const saveConfig = useCallback(async (clientId: string, clientSecret: string) => {
+    await tauri.saveOAuthConfig(clientId, clientSecret);
+    setOAuthConfig({
+      clientId,
+      clientSecret,
+      redirectUri: 'http://localhost:8234/callback',
+    });
+    setAuthState('unauthenticated');
+  }, [setOAuthConfig, setAuthState]);
+
+  // OAuth認証を開始
+  const startLogin = useCallback(async () => {
+    const authUrl = await tauri.startOAuth();
+    // ブラウザで認証URLを開く
+    window.open(authUrl, '_blank');
+    
+    // コールバックを待機
+    const newAccount = await tauri.handleOAuthCallback();
+    setAccount(newAccount);
+    setAuthState('authenticated');
+    
+    return newAccount;
+  }, [setAccount, setAuthState]);
+
+  // ログアウト
+  const logout = useCallback(async () => {
+    await tauri.logout();
+    setAccount(null);
+    setAuthState('unauthenticated');
+  }, [setAccount, setAuthState]);
+
+  // 初回マウント時に認証状態を確認
+  useEffect(() => {
+    checkStatus();
+  }, [checkStatus]);
+
+  return {
+    authState,
+    oauthConfig,
+    account,
+    checkStatus,
+    saveConfig,
+    startLogin,
+    logout,
+  };
+}
+

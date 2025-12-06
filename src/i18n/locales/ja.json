@@ -1,0 +1,104 @@
+{
+  "app": {
+    "name": "ocha",
+    "description": "チャット形式メールクライアント"
+  },
+  "auth": {
+    "login": {
+      "title": "Googleアカウントでログイン",
+      "description": "Gmailにアクセスするため、Googleアカウントでログインしてください。",
+      "button": "Googleでログイン",
+      "loading": "認証中..."
+    },
+    "config": {
+      "title": "OAuth設定",
+      "description": "Google Cloud Consoleで取得したOAuth 2.0クライアントの情報を入力してください。",
+      "clientId": "Client ID",
+      "clientIdPlaceholder": "xxxxx.apps.googleusercontent.com",
+      "clientSecret": "Client Secret",
+      "clientSecretPlaceholder": "GOCSPX-xxxxx",
+      "saveButton": "設定を保存",
+      "saving": "保存中...",
+      "setupGuide": {
+        "title": "設定手順",
+        "step1": "Google Cloud Consoleにアクセス",
+        "step2": "新しいプロジェクトを作成",
+        "step3": "OAuth同意画面を設定",
+        "step4": "認証情報 → OAuth 2.0クライアントIDを作成",
+        "step5": "アプリケーションの種類: デスクトップアプリ",
+        "step6": "Client IDとClient Secretをコピー"
+      }
+    },
+    "errors": {
+      "configRequired": "Client IDとClient Secretを入力してください",
+      "saveFailed": "設定の保存に失敗しました",
+      "loginFailed": "ログインに失敗しました"
+    }
+  },
+  "sidebar": {
+    "groups": "グループ",
+    "newGroup": "新規グループ",
+    "noGroups": "グループがありません",
+    "search": "検索..."
+  },
+  "chat": {
+    "noSelection": "グループを選択してください",
+    "noMessages": "メッセージがありません",
+    "noSubject": "(件名なし)",
+    "attachment": "添付ファイル",
+    "attachments": "{{count}}件の添付ファイル"
+  },
+  "settings": {
+    "title": "設定",
+    "oauth": {
+      "title": "OAuth設定",
+      "description": "Google OAuth 2.0の設定"
+    },
+    "notifications": {
+      "title": "通知設定",
+      "enabled": "通知を有効にする",
+      "sound": "通知音を有効にする",
+      "syncInterval": "同期間隔（分）"
+    },
+    "groups": {
+      "title": "グループ管理",
+      "name": "グループ名",
+      "color": "アバターカラー",
+      "pinned": "ピン留め",
+      "notifyEnabled": "通知を有効にする",
+      "members": "メンバー",
+      "addMember": "メンバーを追加",
+      "email": "メールアドレス",
+      "displayName": "表示名（オプション）",
+      "save": "保存",
+      "cancel": "キャンセル",
+      "delete": "削除",
+      "deleteConfirm": "このグループを削除しますか？"
+    },
+    "account": {
+      "title": "アカウント",
+      "email": "メールアドレス",
+      "logout": "ログアウト",
+      "logoutConfirm": "ログアウトしますか？"
+    }
+  },
+  "common": {
+    "loading": "読み込み中...",
+    "error": "エラーが発生しました",
+    "retry": "再試行",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "delete": "削除",
+    "edit": "編集",
+    "close": "閉じる",
+    "confirm": "確認",
+    "yes": "はい",
+    "no": "いいえ"
+  },
+  "sync": {
+    "syncing": "同期中...",
+    "lastSync": "最終同期: {{time}}",
+    "syncNow": "今すぐ同期"
+  }
+}
+

@@ -1,0 +1,104 @@
+{
+  "app": {
+    "name": "ocha",
+    "description": "Chat-style Email Client"
+  },
+  "auth": {
+    "login": {
+      "title": "Sign in with Google",
+      "description": "Please sign in with your Google account to access Gmail.",
+      "button": "Sign in with Google",
+      "loading": "Authenticating..."
+    },
+    "config": {
+      "title": "OAuth Configuration",
+      "description": "Enter your OAuth 2.0 client credentials from Google Cloud Console.",
+      "clientId": "Client ID",
+      "clientIdPlaceholder": "xxxxx.apps.googleusercontent.com",
+      "clientSecret": "Client Secret",
+      "clientSecretPlaceholder": "GOCSPX-xxxxx",
+      "saveButton": "Save Configuration",
+      "saving": "Saving...",
+      "setupGuide": {
+        "title": "Setup Guide",
+        "step1": "Go to Google Cloud Console",
+        "step2": "Create a new project",
+        "step3": "Configure OAuth consent screen",
+        "step4": "Create OAuth 2.0 Client ID in Credentials",
+        "step5": "Application type: Desktop app",
+        "step6": "Copy Client ID and Client Secret"
+      }
+    },
+    "errors": {
+      "configRequired": "Please enter both Client ID and Client Secret",
+      "saveFailed": "Failed to save configuration",
+      "loginFailed": "Login failed"
+    }
+  },
+  "sidebar": {
+    "groups": "Groups",
+    "newGroup": "New Group",
+    "noGroups": "No groups",
+    "search": "Search..."
+  },
+  "chat": {
+    "noSelection": "Select a group",
+    "noMessages": "No messages",
+    "noSubject": "(No subject)",
+    "attachment": "Attachment",
+    "attachments": "{{count}} attachments"
+  },
+  "settings": {
+    "title": "Settings",
+    "oauth": {
+      "title": "OAuth Settings",
+      "description": "Google OAuth 2.0 configuration"
+    },
+    "notifications": {
+      "title": "Notification Settings",
+      "enabled": "Enable notifications",
+      "sound": "Enable notification sound",
+      "syncInterval": "Sync interval (minutes)"
+    },
+    "groups": {
+      "title": "Group Management",
+      "name": "Group Name",
+      "color": "Avatar Color",
+      "pinned": "Pinned",
+      "notifyEnabled": "Enable notifications",
+      "members": "Members",
+      "addMember": "Add Member",
+      "email": "Email Address",
+      "displayName": "Display Name (optional)",
+      "save": "Save",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "deleteConfirm": "Are you sure you want to delete this group?"
+    },
+    "account": {
+      "title": "Account",
+      "email": "Email",
+      "logout": "Sign Out",
+      "logoutConfirm": "Are you sure you want to sign out?"
+    }
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "retry": "Retry",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "sync": {
+    "syncing": "Syncing...",
+    "lastSync": "Last sync: {{time}}",
+    "syncNow": "Sync Now"
+  }
+}
+
