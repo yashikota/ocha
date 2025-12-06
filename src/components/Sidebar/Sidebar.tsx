@@ -72,7 +72,7 @@ export function Sidebar({ onRefresh }: SidebarProps) {
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
-    
+
     setActiveGroup(null);
     setOverGroupId(null);
 

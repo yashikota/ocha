@@ -204,7 +204,7 @@ export function GroupEditModal() {
             <section>
               <h3 className="text-sm font-semibold text-text mb-3">{t('groupEdit.split')}</h3>
               <p className="text-xs text-text-sub mb-3">{t('groupEdit.splitDescription')}</p>
-              
+
               <div className="bg-bg rounded-lg p-3 max-h-40 overflow-y-auto mb-3">
                 <ul className="space-y-1">
                   {members.map((member) => (

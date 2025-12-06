@@ -22,7 +22,7 @@ export function GroupItem({
   isOver = false,
 }: GroupItemProps) {
   const { t } = useTranslation();
-  
+
   const {
     attributes,
     listeners,
@@ -30,7 +30,7 @@ export function GroupItem({
     transform,
     transition,
     isDragging,
-  } = useSortable({ 
+  } = useSortable({
     id: group.id,
     data: { group },
   });
@@ -65,11 +65,11 @@ export function GroupItem({
       {...listeners}
       onClick={onClick}
       className={`
-        relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg 
+        relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg
         cursor-grab active:cursor-grabbing select-none
         transition-all duration-200 ease-out
-        ${isDragging ? 'opacity-40 scale-95 bg-gray-100' : ''}
-        ${isOver && !isDragging ? 'bg-green-100 ring-2 ring-green-500 scale-[1.02]' : ''}
+        ${isDragging ? 'opacity-40 bg-gray-100' : ''}
+        ${isOver && !isDragging ? 'bg-green-100 ring-2 ring-green-500' : ''}
         ${isSelected && !isDragging && !isOver ? 'bg-selected' : ''}
         ${!isSelected && !isDragging && !isOver ? 'hover:bg-hover' : ''}
       `}
@@ -87,9 +87,9 @@ export function GroupItem({
       )}
 
       {/* アイコン */}
-      <img 
-        src="./icon.png" 
-        alt="" 
+      <img
+        src="./icon.png"
+        alt=""
         className={`w-7 h-7 flex-shrink-0 transition-opacity ${isOver && !isDragging ? 'opacity-40' : ''}`}
       />
 
