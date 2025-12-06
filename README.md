@@ -1,5 +1,7 @@
 # Ocha 🍵
 
+[日本語版](README.ja.md)  
+
 ## Overview
 
 Ocha is a desktop email client that lets you use Gmail like a chat app. It groups email conversations with the same person into a single chat view.
@@ -43,3 +45,4 @@ bun run tauri build
 - **Backend**: Rust, Tauri v2
 - **Database**: SQLite
 - **Protocol**: IMAP (Gmail)
+
