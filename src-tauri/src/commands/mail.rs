@@ -30,7 +30,7 @@ pub async fn sync_messages(app: AppHandle) -> Result<Vec<Message>, String> {
     // 送信メールを同期（フォルダを自動検出）
     let mut sent_messages = Vec::new();
     let sent_folder_found = find_sent_folder_name(&my_email, &access_token).await;
-    
+
     if let Some(ref folder_name) = sent_folder_found {
         match sync_folder(&my_email, &access_token, folder_name, true).await {
             Ok(messages) => {
@@ -88,7 +88,7 @@ pub async fn sync_messages(app: AppHandle) -> Result<Vec<Message>, String> {
 async fn find_sent_folder_name(email: &str, access_token: &str) -> Option<String> {
     let email = email.to_string();
     let access_token = access_token.to_string();
-    
+
     tokio::task::spawn_blocking(move || {
         let mut session = imap::connect(&email, &access_token).ok()?;
         imap::find_sent_folder(&mut session)

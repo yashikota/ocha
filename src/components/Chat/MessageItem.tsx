@@ -50,8 +50,8 @@ export function MessageItem({ message, onAttachmentClick }: MessageItemProps) {
   // 本文を取得
   const bodyContent = message.bodyText || '';
   const needsTruncation = bodyContent.length > MAX_LENGTH;
-  const displayContent = isExpanded || !needsTruncation 
-    ? bodyContent 
+  const displayContent = isExpanded || !needsTruncation
+    ? bodyContent
     : bodyContent.slice(0, MAX_LENGTH) + '...';
 
   // 展開/折りたたみボタン
@@ -84,10 +84,10 @@ export function MessageItem({ message, onAttachmentClick }: MessageItemProps) {
 
           {/* 本文 - 送信メッセージの吹き出し */}
           <div className="bg-primary text-white rounded-2xl rounded-tr-sm px-4 py-2 max-w-full">
-            <div 
+            <div
               className="text-sm break-all"
-              style={{ 
-                whiteSpace: 'pre-wrap', 
+              style={{
+                whiteSpace: 'pre-wrap',
                 wordBreak: 'break-word',
                 overflowWrap: 'anywhere'
               }}
@@ -150,10 +150,10 @@ export function MessageItem({ message, onAttachmentClick }: MessageItemProps) {
 
         {/* 本文 - 受信メッセージの吹き出し */}
         <div className="bg-bg-sidebar border border-border rounded-2xl rounded-tl-sm px-4 py-2 max-w-full">
-          <div 
+          <div
             className="text-sm text-text break-all"
-            style={{ 
-              whiteSpace: 'pre-wrap', 
+            style={{
+              whiteSpace: 'pre-wrap',
               wordBreak: 'break-word',
               overflowWrap: 'anywhere'
             }}

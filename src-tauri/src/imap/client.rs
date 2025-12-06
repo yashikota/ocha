@@ -79,7 +79,7 @@ pub fn find_sent_folder(session: &mut ImapSession) -> Option<String> {
             "Envoyés",       // フランス語
             "Gesendet",      // ドイツ語
         ];
-        
+
         for folder in &folders {
             // 完全一致または部分一致で検索
             let folder_lower = folder.to_lowercase();
@@ -90,7 +90,7 @@ pub fn find_sent_folder(session: &mut ImapSession) -> Option<String> {
                 }
             }
         }
-        
+
         // フォルダ一覧をログに出力
         debug!("Available folders: {:?}", folders);
     }
@@ -215,7 +215,7 @@ fn decode_mime_header(s: &str) -> String {
     if !s.contains("=?") {
         return s.to_string();
     }
-    
+
     // 手動デコードを使用（より信頼性が高い）
     decode_mime_header_manual(s)
 }
@@ -226,7 +226,7 @@ fn decode_mime_header_manual(s: &str) -> String {
     let mut result = String::new();
     let mut i = 0;
     let bytes = s.as_bytes();
-    
+
     while i < bytes.len() {
         // =? を探す
         if i + 1 < bytes.len() && bytes[i] == b'=' && bytes[i + 1] == b'?' {
@@ -245,7 +245,7 @@ fn decode_mime_header_manual(s: &str) -> String {
                 continue;
             }
         }
-        
+
         // 通常の文字を追加
         if let Some(c) = s[i..].chars().next() {
             result.push(c);
@@ -254,47 +254,47 @@ fn decode_mime_header_manual(s: &str) -> String {
             i += 1;
         }
     }
-    
+
     result
 }
 
 /// =?charset?encoding?text?= 形式をパース
 fn parse_encoded_word(s: &str) -> Option<(String, usize)> {
     use base64::Engine;
-    
+
     if !s.starts_with("=?") {
         return None;
     }
-    
+
     // =?charset?encoding?text?= の各部分を抽出
     let rest = &s[2..];
-    
+
     // charset を探す
     let charset_end = rest.find('?')?;
     let charset = &rest[..charset_end];
     let rest = &rest[charset_end + 1..];
-    
+
     // encoding を探す
     let encoding_end = rest.find('?')?;
     let encoding = &rest[..encoding_end];
     let rest = &rest[encoding_end + 1..];
-    
+
     // text と ?= を探す
     let text_end = rest.find("?=")?;
     let text = &rest[..text_end];
-    
+
     // 全体の長さ: =? + charset + ? + encoding + ? + text + ?=
     let total_len = 2 + charset_end + 1 + encoding_end + 1 + text_end + 2;
-    
+
     // デコード
     let decoded_bytes = match encoding.to_uppercase().as_str() {
         "B" => base64::engine::general_purpose::STANDARD.decode(text).ok()?,
         "Q" => decode_quoted_printable(text)?,
         _ => return None,
     };
-    
+
     let decoded_text = decode_charset(&decoded_bytes, charset);
-    
+
     Some((decoded_text, total_len))
 }
 

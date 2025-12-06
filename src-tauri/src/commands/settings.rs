@@ -29,8 +29,7 @@ pub fn reset_messages() -> Result<(), String> {
         conn.execute("DELETE FROM groups", [])?;
         Ok(())
     }).map_err(|e: anyhow::Error| e.to_string())?;
-    
+
     info!("Messages and groups reset successfully");
     Ok(())
 }
-
