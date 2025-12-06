@@ -35,23 +35,26 @@ const formatTime = (dateString: string): string => {
 
 // 署名・引用ヘッダーの開始位置を検出
 const findFooterStart = (text: string): number => {
+  // 改行を統一
+  const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  
   // 確実な引用/署名パターン
   const patterns = [
-    /\n--\s*\n/,                             // 標準署名区切り
-    /\n_{3,}\s*\n/,                          // アンダースコア区切り
-    /\nSent from my /i,                      // iOS署名
-    /\niPhoneから送信/,                       // 日本語iOS
-    /\nOn \d{4}\/\d{1,2}\/\d{1,2}.+wrote:/i, // Gmail引用 (On 2025/08/20 ... wrote:)
-    /\nOn .+\d{1,2}, \d{4}.+wrote:/i,        // Gmail引用 (On Aug 20, 2024 ... wrote:)
-    /\n\d{4}年\d{1,2}月\d{1,2}日.+:/,         // 日本語Gmail引用
-    /\n-{3,} ?Original Message ?-{3,}/i,    // Outlook引用
-    /\n_{3,} ?Original Message ?_{3,}/i,    // Outlook引用
-    /\nFrom: .+\nSent: /i,                   // Outlook形式引用ヘッダー
-    /\n差出人: .+\n送信日時: /,               // 日本語Outlook
+    /\n--\s*\n/,                              // 標準署名区切り
+    /\n_{3,}/,                                // アンダースコア区切り
+    /\nSent from my /i,                       // iOS署名
+    /\niPhoneから送信/,                        // 日本語iOS
+    /\nOn \d{4}\/\d{1,2}\/\d{1,2}[^]*?wrote:/i, // Gmail引用 (On 2025/08/20 ... wrote:)
+    /\nOn [A-Z][a-z]{2} \d{1,2}, \d{4}[^]*?wrote:/i, // Gmail引用 (On Aug 20, 2024 ... wrote:)
+    /\n\d{4}年\d{1,2}月\d{1,2}日[^]*?:/,       // 日本語Gmail引用
+    /\n-{3,}.*Original Message/i,            // Outlook引用
+    /\n_{3,}.*Original Message/i,            // Outlook引用
+    /\nFrom: [^\n]+\nSent: /i,               // Outlook形式引用ヘッダー
+    /\n差出人: [^\n]+\n送信日時: /,            // 日本語Outlook
   ];
   
   for (const pattern of patterns) {
-    const match = text.search(pattern);
+    const match = normalized.search(pattern);
     if (match !== -1) {
       return match;
     }
@@ -71,7 +74,8 @@ export function MessageItem({ message, onAttachmentClick }: MessageItemProps) {
     ? (message.toEmail || '宛先不明')
     : (message.fromName || message.fromEmail);
 
-  const fullBody = message.bodyText || '';
+  const rawBody = message.bodyText || '';
+  const fullBody = rawBody.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   const footerStart = findFooterStart(fullBody);
   const hasFooter = footerStart !== -1;
   const mainBody = hasFooter ? fullBody.slice(0, footerStart).trim() : fullBody;
