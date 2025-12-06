@@ -17,11 +17,7 @@ export function GroupItem({ group, isSelected, unreadCount, onClick }: GroupItem
       }`}
     >
       {/* アイコン */}
-      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-        <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-        </svg>
-      </div>
+      <img src="/icon.png" alt="" className="w-7 h-7 flex-shrink-0" />
 
       <div className="flex-1 min-w-0">
         <div className={`truncate text-sm ${unreadCount > 0 ? 'font-semibold text-text' : 'text-text'}`}>
