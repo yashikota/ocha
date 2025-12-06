@@ -175,7 +175,6 @@ fn save_messages(raw_messages: &[RawMessage], my_email: &str, is_sent: bool, fol
             }
         }).map_err(|e: anyhow::Error| e.to_string())?;
 
-        // メッセージを保存
         let new_message = NewMessage {
             uid: parsed.uid as i64,
             message_id: parsed.message_id.clone(),

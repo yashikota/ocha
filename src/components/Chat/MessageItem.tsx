@@ -75,7 +75,7 @@ export function MessageItem({ message, onAttachmentClick }: MessageItemProps) {
   // 本文と署名を分離
   const rawBody = message.bodyText || '';
   const { body: bodyWithoutSignature, signature } = separateSignature(rawBody);
-  
+
   // 表示する本文
   const bodyContent = bodyWithoutSignature;
   const needsTruncation = bodyContent.length > MAX_LENGTH;
@@ -84,7 +84,7 @@ export function MessageItem({ message, onAttachmentClick }: MessageItemProps) {
     : bodyContent.slice(0, MAX_LENGTH) + '...';
 
   // GmailのURLを生成
-  const gmailUrl = message.messageId 
+  const gmailUrl = message.messageId
     ? `https://mail.google.com/mail/u/0/#search/rfc822msgid:${encodeURIComponent(message.messageId)}`
     : null;
 
@@ -127,7 +127,7 @@ export function MessageItem({ message, onAttachmentClick }: MessageItemProps) {
             <p className="text-sm whitespace-pre-wrap break-words overflow-hidden">
               {displayContent}
             </p>
-            
+
             {/* 展開/折りたたみ */}
             {needsTruncation && (
               <button
@@ -137,7 +137,7 @@ export function MessageItem({ message, onAttachmentClick }: MessageItemProps) {
                 {isExpanded ? t('chat.collapse') : t('chat.expand')}
               </button>
             )}
-            
+
             {/* 署名表示トグル */}
             {signature && (
               <button
@@ -204,7 +204,7 @@ export function MessageItem({ message, onAttachmentClick }: MessageItemProps) {
           <p className="text-sm text-text whitespace-pre-wrap break-words overflow-hidden">
             {displayContent}
           </p>
-          
+
           {/* 展開/折りたたみ */}
           {needsTruncation && (
             <button
@@ -214,7 +214,7 @@ export function MessageItem({ message, onAttachmentClick }: MessageItemProps) {
               {isExpanded ? t('chat.collapse') : t('chat.expand')}
             </button>
           )}
-          
+
           {/* 署名表示トグル */}
           {signature && (
             <button

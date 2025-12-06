@@ -19,7 +19,7 @@ impl OAuthConfig {
         let mut stmt = conn.prepare(
             "SELECT client_id, client_secret, redirect_uri FROM oauth_config WHERE id = 1",
         )?;
-        
+
         let config = stmt
             .query_row([], |row| {
                 Ok(OAuthConfig {
@@ -29,7 +29,7 @@ impl OAuthConfig {
                 })
             })
             .optional()?;
-        
+
         Ok(config)
     }
 
@@ -78,10 +78,10 @@ impl Account {
 
     pub fn get(conn: &Connection) -> Result<Option<Self>> {
         let mut stmt = conn.prepare(
-            "SELECT id, email, access_token, refresh_token, token_expires_at, created_at 
+            "SELECT id, email, access_token, refresh_token, token_expires_at, created_at
              FROM accounts LIMIT 1",
         )?;
-        
+
         let account = stmt.query_row([], Self::from_row).optional()?;
         Ok(account)
     }
@@ -138,11 +138,11 @@ impl Group {
         let mut stmt = conn.prepare(
             "SELECT id, name, avatar_color, is_pinned, notify_enabled, created_at FROM groups ORDER BY created_at DESC",
         )?;
-        
+
         let groups = stmt
             .query_map([], Self::from_row)?
             .collect::<rusqlite::Result<Vec<_>>>()?;
-        
+
         Ok(groups)
     }
 
@@ -150,7 +150,7 @@ impl Group {
         let mut stmt = conn.prepare(
             "SELECT id, name, avatar_color, is_pinned, notify_enabled, created_at FROM groups WHERE id = ?1",
         )?;
-        
+
         let group = stmt.query_row(params![id], Self::from_row).optional()?;
         Ok(group)
     }
@@ -187,7 +187,7 @@ impl Group {
             LIMIT 1
             "#,
         )?;
-        
+
         let group = stmt.query_row(params![email], Self::from_row).optional()?;
         Ok(group)
     }
@@ -196,10 +196,10 @@ impl Group {
     pub fn create_for_email(conn: &Connection, email: &str, display_name: Option<&str>) -> Result<i64> {
         let name = display_name.unwrap_or(email);
         let color = generate_color_from_email(email);
-        
+
         let group_id = Self::create(conn, name, &color)?;
         GroupMember::add(conn, group_id, email, display_name)?;
-        
+
         Ok(group_id)
     }
 }
@@ -210,7 +210,7 @@ fn generate_color_from_email(email: &str) -> String {
         "#2e7d32", "#1565c0", "#6a1b9a", "#c62828", "#ef6c00",
         "#00838f", "#558b2f", "#4527a0", "#ad1457", "#00695c",
     ];
-    
+
     let hash: u32 = email.bytes().fold(0, |acc, b| acc.wrapping_add(b as u32));
     let index = (hash as usize) % colors.len();
     colors[index].to_string()
@@ -243,11 +243,11 @@ impl GroupMember {
         let mut stmt = conn.prepare(
             "SELECT id, group_id, email, display_name FROM group_members WHERE group_id = ?1",
         )?;
-        
+
         let members = stmt
             .query_map(params![group_id], Self::from_row)?
             .collect::<rusqlite::Result<Vec<_>>>()?;
-        
+
         Ok(members)
     }
 
@@ -324,16 +324,16 @@ impl Message {
             ORDER BY received_at ASC
             "#,
         )?;
-        
+
         let mut messages = stmt
             .query_map(params![group_id], Self::from_row)?
             .collect::<rusqlite::Result<Vec<_>>>()?;
-        
+
         // 添付ファイルを取得
         for msg in &mut messages {
             msg.attachments = Attachment::list_by_message(conn, msg.id)?;
         }
-        
+
         Ok(messages)
     }
 
@@ -359,7 +359,7 @@ impl Message {
     pub fn insert(conn: &Connection, msg: &NewMessage) -> Result<i64> {
         conn.execute(
             r#"
-            INSERT INTO messages (uid, message_id, group_id, from_email, from_name, to_email, 
+            INSERT INTO messages (uid, message_id, group_id, from_email, from_name, to_email,
                                   subject, body_text, body_html, received_at, is_sent, folder)
             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
             "#,
@@ -395,11 +395,11 @@ impl Message {
         let mut stmt = conn.prepare(
             "SELECT group_id, COUNT(*) FROM messages WHERE is_read = 0 AND group_id IS NOT NULL GROUP BY group_id",
         )?;
-        
+
         let counts = stmt
             .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
             .collect::<rusqlite::Result<Vec<_>>>()?;
-        
+
         Ok(counts)
     }
 }
@@ -451,11 +451,11 @@ impl Attachment {
         let mut stmt = conn.prepare(
             "SELECT id, message_id, filename, mime_type, size, local_path FROM attachments WHERE message_id = ?1",
         )?;
-        
+
         let attachments = stmt
             .query_map(params![message_id], Self::from_row)?
             .collect::<rusqlite::Result<Vec<_>>>()?;
-        
+
         Ok(attachments)
     }
 
@@ -499,7 +499,7 @@ impl Settings {
     pub fn save(conn: &Connection, settings: &Settings) -> Result<()> {
         conn.execute(
             r#"
-            UPDATE settings SET 
+            UPDATE settings SET
                 notifications_enabled = ?1,
                 sound_enabled = ?2,
                 sync_interval_minutes = ?3
@@ -514,4 +514,3 @@ impl Settings {
         Ok(())
     }
 }
-

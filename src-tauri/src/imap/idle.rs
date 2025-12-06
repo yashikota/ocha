@@ -22,19 +22,19 @@ where
     if IDLE_RUNNING.swap(true, Ordering::SeqCst) {
         return Ok(()); // 既に実行中
     }
-    
+
     IDLE_STOP.store(false, Ordering::SeqCst);
-    
+
     let on_new_mail = Arc::new(on_new_mail);
     let mut current_uid = last_uid;
-    
+
     thread::spawn(move || {
         loop {
             // 停止シグナルをチェック
             if IDLE_STOP.load(Ordering::SeqCst) {
                 break;
             }
-            
+
             // IMAPに接続
             let session_result = connect(&email, &access_token);
             let mut session = match session_result {
@@ -45,21 +45,21 @@ where
                     continue;
                 }
             };
-            
+
             // INBOXを選択
             if let Err(e) = select_inbox(&mut session) {
                 eprintln!("Failed to select INBOX: {:?}", e);
                 thread::sleep(Duration::from_secs(30));
                 continue;
             }
-            
+
             // ポーリングループ
             loop {
                 // 停止シグナルをチェック
                 if IDLE_STOP.load(Ordering::SeqCst) {
                     break;
                 }
-                
+
                 // 新着メールをチェック
                 match fetch_messages_since_uid(&mut session, current_uid) {
                     Ok(messages) => {
@@ -77,7 +77,7 @@ where
                         break; // 接続エラーの場合は再接続
                     }
                 }
-                
+
                 // 30秒待機
                 for _ in 0..30 {
                     if IDLE_STOP.load(Ordering::SeqCst) {
@@ -87,10 +87,10 @@ where
                 }
             }
         }
-        
+
         IDLE_RUNNING.store(false, Ordering::SeqCst);
     });
-    
+
     Ok(())
 }
 

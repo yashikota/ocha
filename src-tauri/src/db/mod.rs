@@ -13,13 +13,13 @@ static DB: OnceCell<Mutex<Connection>> = OnceCell::new();
 pub fn init(app_data_dir: PathBuf) -> Result<()> {
     std::fs::create_dir_all(&app_data_dir)?;
     let db_path = app_data_dir.join("ocha.db");
-    
+
     let conn = Connection::open(&db_path)?;
     schema::create_tables(&conn)?;
-    
+
     DB.set(Mutex::new(conn))
         .map_err(|_| anyhow::anyhow!("Database already initialized"))?;
-    
+
     Ok(())
 }
 
@@ -36,4 +36,3 @@ where
     let conn = get_connection().lock();
     f(&conn)
 }
-

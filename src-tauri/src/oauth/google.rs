@@ -281,6 +281,4 @@ pub async fn get_user_info(access_token: &str) -> Result<UserInfo> {
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct UserInfo {
     pub email: String,
-    pub name: Option<String>,
-    pub picture: Option<String>,
 }
