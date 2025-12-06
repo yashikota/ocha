@@ -46,4 +46,3 @@ export function AttachmentCard({ attachment, onClick }: AttachmentCardProps) {
     </button>
   );
 }
-

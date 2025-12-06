@@ -56,4 +56,3 @@ export function MessageList({ messages, loading, onAttachmentClick }: MessageLis
     </div>
   );
 }
-

@@ -10,7 +10,7 @@ export function AppLayout() {
   useEffect(() => {
     // 初回同期
     syncMessages().catch(console.error);
-    
+
     // IMAP監視を開始
     startWatching().catch(console.error);
   }, [syncMessages, startWatching]);
@@ -23,4 +23,3 @@ export function AppLayout() {
     </div>
   );
 }
-

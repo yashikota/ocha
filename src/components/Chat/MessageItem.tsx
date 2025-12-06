@@ -11,19 +11,19 @@ const formatTime = (dateString: string): string => {
   const date = new Date(dateString);
   const now = new Date();
   const isToday = date.toDateString() === now.toDateString();
-  
+
   if (isToday) {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
-  
+
   const yesterday = new Date(now);
   yesterday.setDate(yesterday.getDate() - 1);
   const isYesterday = date.toDateString() === yesterday.toDateString();
-  
+
   if (isYesterday) {
     return `Yesterday ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
   }
-  
+
   return date.toLocaleDateString([], {
     month: 'short',
     day: 'numeric',
@@ -82,4 +82,3 @@ export function MessageItem({ message, onAttachmentClick }: MessageItemProps) {
     </article>
   );
 }
-

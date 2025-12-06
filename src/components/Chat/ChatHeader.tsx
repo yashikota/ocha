@@ -50,4 +50,3 @@ export function ChatHeader({ group, onSync, syncing }: ChatHeaderProps) {
     </header>
   );
 }
-

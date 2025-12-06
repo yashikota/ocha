@@ -14,7 +14,7 @@ export function SettingsModal() {
   const [settings, setSettings] = useAtom(settingsAtom);
   const [account] = useAtom(accountAtom);
   const { logout } = useAuth();
-  
+
   const [localSettings, setLocalSettings] = useState<Settings>(settings);
   const [saving, setSaving] = useState(false);
 
@@ -143,4 +143,3 @@ export function SettingsModal() {
     </div>
   );
 }
-

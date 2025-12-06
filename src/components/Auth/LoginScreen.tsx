@@ -16,7 +16,7 @@ export function LoginScreen() {
       setError(t('auth.errors.configRequired'));
       return;
     }
-    
+
     setLoading(true);
     setError(null);
     try {
@@ -58,7 +58,7 @@ export function LoginScreen() {
             <>
               <h2 className="text-lg font-semibold text-text mb-4">{t('auth.config.title')}</h2>
               <p className="text-sm text-text-sub mb-6">{t('auth.config.description')}</p>
-              
+
               <form onSubmit={handleSaveConfig} className="space-y-4">
                 <div>
                   <label htmlFor="clientId" className="block text-sm font-medium text-text mb-1">
@@ -73,7 +73,7 @@ export function LoginScreen() {
                     placeholder={t('auth.config.clientIdPlaceholder')}
                   />
                 </div>
-                
+
                 <div>
                   <label htmlFor="clientSecret" className="block text-sm font-medium text-text mb-1">
                     {t('auth.config.clientSecret')}

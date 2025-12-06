@@ -27,7 +27,7 @@ export function useMessages() {
     setLoading(true);
     try {
       const newMessages = await tauri.syncMessages();
-      
+
       // 現在選択中のグループのメッセージを更新
       if (selectedGroupId !== null) {
         const groupMessages = newMessages.filter((m) => m.groupId === selectedGroupId);
@@ -35,7 +35,7 @@ export function useMessages() {
           setMessages((prev) => [...prev, ...groupMessages]);
         }
       }
-      
+
       return newMessages;
     } finally {
       setLoading(false);
@@ -93,4 +93,3 @@ export function useMessages() {
     stopWatching,
   };
 }
-
