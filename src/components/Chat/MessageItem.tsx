@@ -35,18 +35,19 @@ const formatTime = (dateString: string): string => {
 
 // 署名・引用ヘッダーの開始位置を検出
 const findFooterStart = (text: string): number => {
-  // 確実な引用/署名パターン（行頭から完全一致）
+  // 確実な引用/署名パターン
   const patterns = [
-    /\n--\s*\n/,                           // 標準署名区切り
-    /\n_{3,}\s*\n/,                         // アンダースコア区切り
-    /\nSent from my /i,                     // iOS署名
-    /\niPhoneから送信/,                      // 日本語iOS
-    /\nOn .+wrote:\s*\n/i,                  // Gmail引用ヘッダー
-    /\n\d{4}年\d{1,2}月\d{1,2}日.+:\s*\n/,   // 日本語Gmail引用
-    /\n-{3,} ?Original Message ?-{3,}/i,   // Outlook引用
-    /\n_{3,} ?Original Message ?_{3,}/i,   // Outlook引用
-    /\nFrom: .+\nSent: /i,                  // Outlook形式引用ヘッダー
-    /\n差出人: .+\n送信日時: /,              // 日本語Outlook
+    /\n--\s*\n/,                             // 標準署名区切り
+    /\n_{3,}\s*\n/,                          // アンダースコア区切り
+    /\nSent from my /i,                      // iOS署名
+    /\niPhoneから送信/,                       // 日本語iOS
+    /\nOn \d{4}\/\d{1,2}\/\d{1,2}.+wrote:/i, // Gmail引用 (On 2025/08/20 ... wrote:)
+    /\nOn .+\d{1,2}, \d{4}.+wrote:/i,        // Gmail引用 (On Aug 20, 2024 ... wrote:)
+    /\n\d{4}年\d{1,2}月\d{1,2}日.+:/,         // 日本語Gmail引用
+    /\n-{3,} ?Original Message ?-{3,}/i,    // Outlook引用
+    /\n_{3,} ?Original Message ?_{3,}/i,    // Outlook引用
+    /\nFrom: .+\nSent: /i,                   // Outlook形式引用ヘッダー
+    /\n差出人: .+\n送信日時: /,               // 日本語Outlook
   ];
   
   for (const pattern of patterns) {
