@@ -1,9 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAtom } from 'jotai';
 import { GroupItem } from './GroupItem';
 import { useGroups } from '../../hooks/useGroups';
 import { settingsModalOpenAtom } from '../../atoms/uiAtom';
+import { mergeGroups, getGroups } from '../../hooks/useTauri';
+import { groupsAtom } from '../../atoms/groupsAtom';
 
 interface SidebarProps {
   onRefresh?: () => void;
@@ -20,11 +22,57 @@ export function Sidebar({ onRefresh }: SidebarProps) {
     selectGroup,
   } = useGroups();
   const [, setSettingsOpen] = useAtom(settingsModalOpenAtom);
+  const [, setGroups] = useAtom(groupsAtom);
+
+  const [draggingGroupId, setDraggingGroupId] = useState<number | null>(null);
+  const [merging, setMerging] = useState(false);
 
   useEffect(() => {
     fetchGroups();
     fetchUnreadCounts();
   }, [fetchGroups, fetchUnreadCounts]);
+
+  const handleDragStart = (groupId: number) => {
+    setDraggingGroupId(groupId);
+  };
+
+  const handleDragEnd = () => {
+    setDraggingGroupId(null);
+  };
+
+  const handleDrop = async (targetGroupId: number) => {
+    if (!draggingGroupId || draggingGroupId === targetGroupId || merging) return;
+
+    const sourceGroup = groups.find(g => g.id === draggingGroupId);
+    const targetGroup = groups.find(g => g.id === targetGroupId);
+
+    if (!sourceGroup || !targetGroup) return;
+
+    const confirmMessage = t('groupEdit.mergeConfirm', {
+      source: sourceGroup.name,
+      target: targetGroup.name,
+    });
+
+    if (!window.confirm(confirmMessage)) {
+      setDraggingGroupId(null);
+      return;
+    }
+
+    setMerging(true);
+    try {
+      await mergeGroups(targetGroupId, draggingGroupId);
+      const updatedGroups = await getGroups();
+      setGroups(updatedGroups);
+      await fetchUnreadCounts();
+      // 統合後、ターゲットグループを選択
+      selectGroup(targetGroupId);
+    } catch (error) {
+      console.error('Failed to merge groups:', error);
+    } finally {
+      setMerging(false);
+      setDraggingGroupId(null);
+    }
+  };
 
   return (
     <aside className="w-64 h-full bg-bg-sidebar border-r border-border flex flex-col">
@@ -64,10 +112,15 @@ export function Sidebar({ onRefresh }: SidebarProps) {
 
       {/* グループセクション */}
       <div className="flex-1 overflow-y-auto p-2">
-        <div className="px-2 py-1">
+        <div className="px-2 py-1 flex items-center justify-between">
           <span className="text-xs font-semibold text-text-sub uppercase tracking-wide">
             {t('sidebar.groups')}
           </span>
+          {draggingGroupId && (
+            <span className="text-xs text-primary animate-pulse">
+              {t('sidebar.dropToMerge')}
+            </span>
+          )}
         </div>
 
         {groups.length === 0 ? (
@@ -83,6 +136,11 @@ export function Sidebar({ onRefresh }: SidebarProps) {
                 isSelected={selectedGroupId === group.id}
                 unreadCount={unreadCounts[group.id] || 0}
                 onClick={() => selectGroup(group.id)}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                onDrop={handleDrop}
+                isDragging={draggingGroupId !== null}
+                dragOverGroupId={draggingGroupId}
               />
             ))}
           </nav>

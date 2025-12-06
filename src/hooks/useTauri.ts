@@ -125,6 +125,10 @@ export async function mergeGroups(targetId: number, sourceId: number): Promise<v
   return invoke('merge_groups', { targetId, sourceId });
 }
 
+export async function splitGroup(sourceId: number, emails: string[], newGroupName: string): Promise<number> {
+  return invoke('split_group', { sourceId, emails, newGroupName });
+}
+
 // ============================================================================
 // Attachments
 // ============================================================================

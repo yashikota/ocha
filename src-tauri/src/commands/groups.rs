@@ -71,3 +71,13 @@ pub fn merge_groups(target_id: i64, source_id: i64) -> Result<(), String> {
     db::with_db(|conn| Group::merge(conn, target_id, source_id))
         .map_err(|e| e.to_string())
 }
+
+/// グループを分割（指定したメールアドレスを新しいグループに移動）
+#[tauri::command]
+pub fn split_group(source_id: i64, emails: Vec<String>, new_group_name: String) -> Result<i64, String> {
+    if emails.is_empty() {
+        return Err("No emails specified".to_string());
+    }
+    db::with_db(|conn| Group::split(conn, source_id, &emails, &new_group_name))
+        .map_err(|e| e.to_string())
+}

@@ -39,7 +39,8 @@
         "groups": "Groups",
         "newGroup": "New Group",
         "noGroups": "No groups",
-        "search": "Search..."
+        "search": "Search...",
+        "dropToMerge": "Drop to merge"
     },
     "chat": {
         "noSelection": "Select a group",
@@ -126,6 +127,12 @@
         "selectGroup": "Select a group to merge...",
         "mergeButton": "Merge",
         "mergeConfirm": "Merge \"{{source}}\" into \"{{target}}\"? This action cannot be undone.",
+        "split": "Split Group",
+        "splitDescription": "Separate selected email addresses into a new group. Related messages will also be moved.",
+        "splitButton": "Split {{count}} address(es)",
+        "splitConfirm": "Split {{count}} email address(es) into \"{{newGroup}}\"?",
+        "newGroupNamePlaceholder": "Enter new group name...",
+        "cannotSplitAll": "Cannot split all email addresses",
         "dangerZone": "Danger Zone",
         "deleteWarning": "Deleting the group will also delete all associated messages.",
         "deleteButton": "Delete Group",

@@ -214,6 +214,35 @@ impl Group {
         Ok(())
     }
 
+    /// グループを分割（指定したメールアドレスを新しいグループに移動）
+    pub fn split(conn: &Connection, source_id: i64, emails: &[String], new_group_name: &str) -> Result<i64> {
+        // 新しいグループを作成
+        let color = generate_color_from_email(&emails.join(","));
+        let new_group_id = Self::create(conn, new_group_name, &color)?;
+
+        for email in emails {
+            // メンバーを新しいグループに移動
+            let display_name: Option<String> = conn
+                .query_row(
+                    "SELECT display_name FROM group_members WHERE group_id = ?1 AND email = ?2",
+                    params![source_id, email],
+                    |row| row.get(0),
+                )
+                .ok();
+
+            GroupMember::add(conn, new_group_id, email, display_name.as_deref())?;
+            GroupMember::remove(conn, source_id, email)?;
+
+            // メッセージを新しいグループに移動（from_emailまたはto_emailがこのアドレスのもの）
+            conn.execute(
+                "UPDATE messages SET group_id = ?1 WHERE group_id = ?2 AND (from_email = ?3 OR to_email = ?3)",
+                params![new_group_id, source_id, email],
+            )?;
+        }
+
+        Ok(new_group_id)
+    }
+
     /// メールアドレスからグループを検索
     pub fn find_by_email(conn: &Connection, email: &str) -> Result<Option<Self>> {
         let mut stmt = conn.prepare(

@@ -2,13 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAtom } from 'jotai';
 import { groupEditorOpenAtom, editingGroupIdAtom } from '../../atoms/uiAtom';
-import { groupsAtom } from '../../atoms/groupsAtom';
+import { groupsAtom, selectedGroupIdAtom } from '../../atoms/groupsAtom';
 import {
   getGroup,
   getGroups,
   getGroupMembers,
   updateGroup,
-  mergeGroups,
+  splitGroup,
   deleteGroup,
 } from '../../hooks/useTauri';
 import type { Group, GroupMember } from '../../types';
@@ -18,25 +18,25 @@ export function GroupEditModal() {
   const [isOpen, setIsOpen] = useAtom(groupEditorOpenAtom);
   const [editingGroupId, setEditingGroupId] = useAtom(editingGroupIdAtom);
   const [, setGroups] = useAtom(groupsAtom);
+  const [, setSelectedGroupId] = useAtom(selectedGroupIdAtom);
 
   const [group, setGroup] = useState<Group | null>(null);
   const [members, setMembers] = useState<GroupMember[]>([]);
-  const [allGroups, setAllGroups] = useState<Group[]>([]);
   const [name, setName] = useState('');
   const [isPinned, setIsPinned] = useState(false);
   const [notifyEnabled, setNotifyEnabled] = useState(true);
-  const [selectedMergeGroupId, setSelectedMergeGroupId] = useState<number | null>(null);
+  const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
+  const [newGroupName, setNewGroupName] = useState('');
   const [saving, setSaving] = useState(false);
-  const [merging, setMerging] = useState(false);
+  const [splitting, setSplitting] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!editingGroupId) return;
 
     try {
-      const [groupData, membersData, groupsData] = await Promise.all([
+      const [groupData, membersData] = await Promise.all([
         getGroup(editingGroupId),
         getGroupMembers(editingGroupId),
-        getGroups(),
       ]);
 
       if (groupData) {
@@ -46,8 +46,6 @@ export function GroupEditModal() {
         setNotifyEnabled(groupData.notifyEnabled);
       }
       setMembers(membersData);
-      // 現在のグループを除外
-      setAllGroups(groupsData.filter(g => g.id !== editingGroupId));
     } catch (error) {
       console.error('Failed to load group data:', error);
     }
@@ -56,6 +54,8 @@ export function GroupEditModal() {
   useEffect(() => {
     if (isOpen && editingGroupId) {
       loadData();
+      setSelectedEmails(new Set());
+      setNewGroupName('');
     }
   }, [isOpen, editingGroupId, loadData]);
 
@@ -64,7 +64,8 @@ export function GroupEditModal() {
     setEditingGroupId(null);
     setGroup(null);
     setMembers([]);
-    setSelectedMergeGroupId(null);
+    setSelectedEmails(new Set());
+    setNewGroupName('');
   };
 
   const handleSave = async () => {
@@ -83,31 +84,44 @@ export function GroupEditModal() {
     }
   };
 
-  const handleMerge = async () => {
-    if (!group || !selectedMergeGroupId) return;
+  const toggleEmailSelection = (email: string) => {
+    const newSelection = new Set(selectedEmails);
+    if (newSelection.has(email)) {
+      newSelection.delete(email);
+    } else {
+      newSelection.add(email);
+    }
+    setSelectedEmails(newSelection);
+  };
 
-    const sourceGroup = allGroups.find(g => g.id === selectedMergeGroupId);
-    if (!sourceGroup) return;
+  const handleSplit = async () => {
+    if (!group || selectedEmails.size === 0 || !newGroupName.trim()) return;
 
-    const confirmMessage = t('groupEdit.mergeConfirm', {
-      source: sourceGroup.name,
-      target: group.name,
+    // 全てのメールアドレスを選択した場合は分割できない
+    if (selectedEmails.size === members.length) {
+      alert(t('groupEdit.cannotSplitAll'));
+      return;
+    }
+
+    const confirmMessage = t('groupEdit.splitConfirm', {
+      count: selectedEmails.size,
+      newGroup: newGroupName,
     });
 
     if (!window.confirm(confirmMessage)) return;
 
-    setMerging(true);
+    setSplitting(true);
     try {
-      await mergeGroups(group.id, selectedMergeGroupId);
-      // データを再読み込み
-      await loadData();
+      const newGroupId = await splitGroup(group.id, Array.from(selectedEmails), newGroupName);
       const updatedGroups = await getGroups();
       setGroups(updatedGroups);
-      setSelectedMergeGroupId(null);
+      // 新しいグループを選択
+      setSelectedGroupId(newGroupId);
+      handleClose();
     } catch (error) {
-      console.error('Failed to merge groups:', error);
+      console.error('Failed to split group:', error);
     } finally {
-      setMerging(false);
+      setSplitting(false);
     }
   };
 
@@ -120,6 +134,7 @@ export function GroupEditModal() {
       await deleteGroup(group.id);
       const updatedGroups = await getGroups();
       setGroups(updatedGroups);
+      setSelectedGroupId(null);
       handleClose();
     } catch (error) {
       console.error('Failed to delete group:', error);
@@ -127,6 +142,8 @@ export function GroupEditModal() {
   };
 
   if (!isOpen || !group) return null;
+
+  const canSplit = selectedEmails.size > 0 && selectedEmails.size < members.length && newGroupName.trim();
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -184,57 +201,72 @@ export function GroupEditModal() {
             </div>
           </section>
 
-          {/* メールアドレス一覧 */}
-          <section>
-            <h3 className="text-sm font-semibold text-text mb-3">
-              {t('groupEdit.members')} ({members.length})
-            </h3>
-            <div className="bg-bg rounded-lg p-3 max-h-32 overflow-y-auto">
-              {members.length === 0 ? (
-                <p className="text-sm text-text-sub">{t('groupEdit.noMembers')}</p>
-              ) : (
+          {/* グループ分割 */}
+          {members.length > 1 && (
+            <section>
+              <h3 className="text-sm font-semibold text-text mb-3">{t('groupEdit.split')}</h3>
+              <p className="text-xs text-text-sub mb-3">{t('groupEdit.splitDescription')}</p>
+              
+              {/* メールアドレス選択 */}
+              <div className="bg-bg rounded-lg p-3 max-h-40 overflow-y-auto mb-3">
                 <ul className="space-y-1">
                   {members.map((member) => (
-                    <li key={member.id} className="text-sm text-text flex items-center gap-2">
-                      <svg className="w-4 h-4 text-text-sub flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-                      </svg>
-                      <span className="truncate">{member.email}</span>
-                      {member.displayName && (
-                        <span className="text-text-sub">({member.displayName})</span>
-                      )}
+                    <li key={member.id}>
+                      <label className="flex items-center gap-2 cursor-pointer hover:bg-hover rounded p-1">
+                        <input
+                          type="checkbox"
+                          checked={selectedEmails.has(member.email)}
+                          onChange={() => toggleEmailSelection(member.email)}
+                          className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                        />
+                        <svg className="w-4 h-4 text-text-sub flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                        </svg>
+                        <span className="text-sm text-text truncate">{member.email}</span>
+                        {member.displayName && (
+                          <span className="text-xs text-text-sub">({member.displayName})</span>
+                        )}
+                      </label>
                     </li>
                   ))}
                 </ul>
-              )}
-            </div>
-          </section>
+              </div>
 
-          {/* グループ統合 */}
-          {allGroups.length > 0 && (
+              {/* 新しいグループ名 */}
+              {selectedEmails.size > 0 && (
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={newGroupName}
+                    onChange={(e) => setNewGroupName(e.target.value)}
+                    placeholder={t('groupEdit.newGroupNamePlaceholder')}
+                    className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                  <button
+                    onClick={handleSplit}
+                    disabled={!canSplit || splitting}
+                    className="w-full px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {splitting ? t('common.loading') : t('groupEdit.splitButton', { count: selectedEmails.size })}
+                  </button>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* メールアドレス一覧（分割不可の場合のみ表示） */}
+          {members.length === 1 && (
             <section>
-              <h3 className="text-sm font-semibold text-text mb-3">{t('groupEdit.merge')}</h3>
-              <p className="text-xs text-text-sub mb-3">{t('groupEdit.mergeDescription')}</p>
-              <div className="flex gap-2">
-                <select
-                  value={selectedMergeGroupId ?? ''}
-                  onChange={(e) => setSelectedMergeGroupId(e.target.value ? Number(e.target.value) : null)}
-                  className="flex-1 px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  <option value="">{t('groupEdit.selectGroup')}</option>
-                  {allGroups.map((g) => (
-                    <option key={g.id} value={g.id}>
-                      {g.name}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  onClick={handleMerge}
-                  disabled={!selectedMergeGroupId || merging}
-                  className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50"
-                >
-                  {merging ? t('common.loading') : t('groupEdit.mergeButton')}
-                </button>
+              <h3 className="text-sm font-semibold text-text mb-3">
+                {t('groupEdit.members')} ({members.length})
+              </h3>
+              <div className="bg-bg rounded-lg p-3">
+                <div className="text-sm text-text flex items-center gap-2">
+                  <svg className="w-4 h-4 text-text-sub flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                  </svg>
+                  <span className="truncate">{members[0].email}</span>
+                </div>
               </div>
             </section>
           )}
