@@ -9,8 +9,6 @@ interface GroupItemProps {
 }
 
 export function GroupItem({ group, isSelected, unreadCount, onClick }: GroupItemProps) {
-  const initial = group.name.charAt(0).toUpperCase();
-
   return (
     <button
       onClick={onClick}
@@ -18,13 +16,6 @@ export function GroupItem({ group, isSelected, unreadCount, onClick }: GroupItem
         isSelected ? 'bg-selected' : 'hover:bg-hover'
       }`}
     >
-      <div
-        className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-white font-medium text-sm"
-        style={{ backgroundColor: group.avatarColor }}
-      >
-        {initial}
-      </div>
-
       <div className="flex-1 min-w-0">
         <div className={`truncate text-sm ${unreadCount > 0 ? 'font-semibold text-text' : 'text-text'}`}>
           {group.name}

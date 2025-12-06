@@ -135,8 +135,18 @@ impl Group {
     }
 
     pub fn list(conn: &Connection) -> Result<Vec<Self>> {
+        // 最新メッセージ順にソート（ピン留めを優先）
         let mut stmt = conn.prepare(
-            "SELECT id, name, avatar_color, is_pinned, notify_enabled, created_at FROM groups ORDER BY created_at DESC",
+            r#"
+            SELECT g.id, g.name, g.avatar_color, g.is_pinned, g.notify_enabled, g.created_at
+            FROM groups g
+            LEFT JOIN (
+                SELECT group_id, MAX(received_at) as latest
+                FROM messages
+                GROUP BY group_id
+            ) m ON g.id = m.group_id
+            ORDER BY g.is_pinned DESC, m.latest DESC NULLS LAST, g.created_at DESC
+            "#,
         )?;
 
         let groups = stmt

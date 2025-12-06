@@ -60,120 +60,59 @@ export function MessageItem({ message, onAttachmentClick }: MessageItemProps) {
   const displayName = isSent
     ? (message.toEmail || '宛先不明')
     : (message.fromName || message.fromEmail);
-  const initial = displayName.charAt(0).toUpperCase();
 
   const fullBody = message.bodyText || '';
   const signatureStart = findSignatureStart(fullBody);
   const hasSignature = signatureStart !== -1;
-
-  // 署名前の本文のみ（省略表示用）
   const mainBody = hasSignature ? fullBody.slice(0, signatureStart).trim() : fullBody;
-
-  // 省略が必要かどうか（本文が長いか、署名があるか）
   const needsTruncation = mainBody.length > MAX_LENGTH || hasSignature;
-
-  // 表示するコンテンツ
   const displayContent = isExpanded
-    ? fullBody  // 展開時は署名含む全文
+    ? fullBody
     : mainBody.length > MAX_LENGTH
       ? mainBody.slice(0, MAX_LENGTH) + '...'
       : mainBody;
 
-  if (isSent) {
-    return (
-      <article className="flex gap-3 p-4 hover:bg-hover transition-colors justify-end">
-        <div className="flex flex-col items-end min-w-0 max-w-[70%]">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs text-text-sub">{formatTime(message.receivedAt)}</span>
-            <span className="font-semibold text-text">自分</span>
-          </div>
-
-          {message.subject && (
-            <div className="text-sm font-medium text-text mb-1 text-right w-full overflow-hidden text-ellipsis whitespace-nowrap">
-              {message.subject}
-            </div>
-          )}
-
-          <div className="bg-primary text-white rounded-2xl rounded-tr-sm px-4 py-2 w-full">
-            <p className="text-sm whitespace-pre-wrap break-words overflow-hidden">
-              {displayContent}
-            </p>
-
-            {needsTruncation && (
-              <button
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="text-xs text-white/80 hover:text-white mt-2 underline block"
-              >
-                {isExpanded ? t('chat.collapse') : t('chat.expand')}
-              </button>
-            )}
-          </div>
-
-          {message.attachments && message.attachments.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-2 justify-end">
-              {message.attachments.map((attachment) => (
-                <AttachmentCard
-                  key={attachment.id}
-                  attachment={attachment}
-                  onClick={() => onAttachmentClick?.(attachment.id)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary-dark flex items-center justify-center text-white font-medium text-xs">
-          Me
-        </div>
-      </article>
-    );
-  }
-
   return (
-    <article className={`flex gap-3 p-4 hover:bg-hover transition-colors ${!message.isRead ? 'bg-selected/30' : ''}`}>
-      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-medium">
-        {initial}
+    <article className={`p-4 hover:bg-hover transition-colors ${!message.isRead && !isSent ? 'bg-selected/30' : ''}`}>
+      <div className="flex items-center gap-2 mb-1">
+        <span className="font-semibold text-text truncate">
+          {isSent ? '自分' : displayName}
+        </span>
+        <span className="text-xs text-text-sub">{formatTime(message.receivedAt)}</span>
       </div>
 
-      <div className="flex flex-col min-w-0 max-w-[70%]">
-        <div className="flex items-center gap-2 mb-1 min-w-0">
-          <span className="font-semibold text-text truncate">{displayName}</span>
-          <span className="text-xs text-text-sub flex-shrink-0">{formatTime(message.receivedAt)}</span>
+      {message.subject && (
+        <div className="text-sm font-medium text-text mb-1 overflow-hidden text-ellipsis whitespace-nowrap">
+          {message.subject}
         </div>
+      )}
 
-        {message.subject && (
-          <div className="text-sm font-medium text-text mb-1 overflow-hidden text-ellipsis whitespace-nowrap">
-            {message.subject}
-          </div>
-        )}
+      <div className={`rounded-lg px-3 py-2 ${isSent ? 'bg-primary/10 border border-primary/20' : 'bg-bg-sidebar border border-border'}`}>
+        <p className="text-sm text-text whitespace-pre-wrap break-words overflow-hidden">
+          {displayContent}
+        </p>
 
-        <div className="bg-bg-sidebar border border-border rounded-2xl rounded-tl-sm px-4 py-2 w-full">
-          <p className="text-sm text-text whitespace-pre-wrap break-words overflow-hidden">
-            {displayContent}
-          </p>
-
-          {needsTruncation && (
-            <button
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="text-xs text-primary hover:text-primary-hover mt-2 underline block"
-            >
-              {isExpanded ? t('chat.collapse') : t('chat.expand')}
-            </button>
-          )}
-        </div>
-
-        {message.attachments && message.attachments.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-2">
-            {message.attachments.map((attachment) => (
-              <AttachmentCard
-                key={attachment.id}
-                attachment={attachment}
-                onClick={() => onAttachmentClick?.(attachment.id)}
-              />
-            ))}
-          </div>
+        {needsTruncation && (
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="text-xs text-primary hover:text-primary-hover mt-2 underline block"
+          >
+            {isExpanded ? t('chat.collapse') : t('chat.expand')}
+          </button>
         )}
       </div>
+
+      {message.attachments && message.attachments.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {message.attachments.map((attachment) => (
+            <AttachmentCard
+              key={attachment.id}
+              attachment={attachment}
+              onClick={() => onAttachmentClick?.(attachment.id)}
+            />
+          ))}
+        </div>
+      )}
     </article>
   );
 }
