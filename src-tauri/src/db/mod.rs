@@ -16,7 +16,7 @@ fn get_db_filename() -> &'static str {
     {
         "ocha_dev.db"
     }
-    
+
     #[cfg(not(debug_assertions))]
     {
         "ocha.db"
