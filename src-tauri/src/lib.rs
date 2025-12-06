@@ -21,9 +21,9 @@ pub fn run() {
                 .path()
                 .app_data_dir()
                 .expect("Failed to get app data directory");
-            
+
             db::init(app_data_dir).expect("Failed to initialize database");
-            
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

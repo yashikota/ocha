@@ -13,12 +13,12 @@ export function useAuth() {
     try {
       setAuthState('loading');
       const status = await tauri.checkAuthStatus();
-      
+
       if (!status.hasOauthConfig) {
         setAuthState('needs_config');
         return;
       }
-      
+
       if (status.isAuthenticated && status.account) {
         setAccount(status.account);
         setAuthState('authenticated');
@@ -48,7 +48,7 @@ export function useAuth() {
     const newAccount = await tauri.performOAuth();
     setAccount(newAccount);
     setAuthState('authenticated');
-    
+
     return newAccount;
   }, [setAccount, setAuthState]);
 
@@ -74,4 +74,3 @@ export function useAuth() {
     logout,
   };
 }
-
