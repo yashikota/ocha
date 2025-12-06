@@ -14,17 +14,17 @@ pub type ImapSession = Session<TlsStream<TcpStream>>;
 /// Gmail IMAPに接続
 pub fn connect(email: &str, access_token: &str) -> Result<ImapSession> {
     info!("Connecting to IMAP server {}:{}", IMAP_SERVER, IMAP_PORT);
-    
+
     let tls = native_tls::TlsConnector::new()?;
     let client = imap::connect((IMAP_SERVER, IMAP_PORT), IMAP_SERVER, &tls)
         .map_err(|e| {
             error!("Failed to connect to IMAP server: {}", e);
             anyhow!("Failed to connect to IMAP server: {}", e)
         })?;
-    
+
     info!("Connected to IMAP server, authenticating...");
     debug!("Email: {}", email);
-    
+
     // XOAUTH2で認証
     let auth_string = build_xoauth2_string(email, access_token);
     let authenticator = XOAuth2Authenticator { auth_string };
@@ -34,7 +34,7 @@ pub fn connect(email: &str, access_token: &str) -> Result<ImapSession> {
             error!("IMAP authentication failed: {:?}", e);
             anyhow!("IMAP authentication failed: {:?}", e)
         })?;
-    
+
     info!("IMAP authentication successful");
     Ok(session)
 }
@@ -45,7 +45,7 @@ struct XOAuth2Authenticator {
 
 impl imap::Authenticator for XOAuth2Authenticator {
     type Response = String;
-    
+
     fn process(&self, _data: &[u8]) -> Self::Response {
         self.auth_string.clone()
     }
@@ -69,11 +69,11 @@ pub fn fetch_messages_since_uid(
         // 差分同期: 指定UIDより大きいメールを取得
         format!("{}:*", since_uid + 1)
     };
-    
+
     let messages = session.uid_fetch(&query, "(UID ENVELOPE BODY[] FLAGS)")?;
-    
+
     let mut result = Vec::new();
-    
+
     for msg in messages.iter() {
         if let Some(raw) = parse_fetch(msg) {
             // 既存のUIDはスキップ
@@ -82,13 +82,13 @@ pub fn fetch_messages_since_uid(
             }
         }
     }
-    
+
     // 最新100件に制限（初回同期時）
     if since_uid == 0 && result.len() > 100 {
         let skip_count = result.len() - 100;
         result = result.into_iter().skip(skip_count).collect();
     }
-    
+
     Ok(result)
 }
 
@@ -97,7 +97,7 @@ fn parse_fetch(fetch: &imap::types::Fetch) -> Option<RawMessage> {
     let uid = fetch.uid?;
     let envelope = fetch.envelope()?;
     let body = fetch.body()?;
-    
+
     let from_email = envelope
         .from
         .as_ref()
@@ -111,29 +111,29 @@ fn parse_fetch(fetch: &imap::types::Fetch) -> Option<RawMessage> {
                 String::from_utf8_lossy(&host)
             ))
         })?;
-    
+
     let from_name = envelope
         .from
         .as_ref()
         .and_then(|addrs| addrs.first())
         .and_then(|addr| addr.name.as_ref())
         .map(|n| decode_mime_header(&String::from_utf8_lossy(n)));
-    
+
     let subject = envelope
         .subject
         .as_ref()
         .map(|s| decode_mime_header(&String::from_utf8_lossy(s)));
-    
+
     let message_id = envelope
         .message_id
         .as_ref()
         .map(|id| String::from_utf8_lossy(id).to_string());
-    
+
     let date = envelope
         .date
         .as_ref()
         .map(|d| String::from_utf8_lossy(d).to_string());
-    
+
     Some(RawMessage {
         uid,
         message_id,
@@ -148,7 +148,7 @@ fn parse_fetch(fetch: &imap::types::Fetch) -> Option<RawMessage> {
 /// MIMEエンコードされたヘッダーをデコード
 fn decode_mime_header(s: &str) -> String {
     use base64::Engine;
-    
+
     // 簡易的なMIMEデコード（=?UTF-8?B?...?= 形式）
     if s.starts_with("=?") && s.contains("?B?") {
         if let Some(start) = s.find("?B?") {
@@ -162,7 +162,7 @@ fn decode_mime_header(s: &str) -> String {
             }
         }
     }
-    
+
     // =?UTF-8?Q?...?= 形式（Quoted-Printable）
     if s.starts_with("=?") && s.contains("?Q?") {
         if let Some(start) = s.find("?Q?") {
@@ -188,7 +188,7 @@ fn decode_mime_header(s: &str) -> String {
             }
         }
     }
-    
+
     s.to_string()
 }
 
