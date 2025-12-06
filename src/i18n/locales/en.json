@@ -47,9 +47,9 @@
         "noSubject": "(No subject)",
         "attachment": "Attachment",
         "attachments": "{{count}} attachments",
-    "expand": "Read more",
-    "collapse": "Collapse"
-  },
+        "expand": "Read more",
+        "collapse": "Collapse"
+    },
     "settings": {
         "title": "Settings",
         "oauth": {

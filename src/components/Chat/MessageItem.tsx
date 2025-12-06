@@ -65,17 +65,17 @@ export function MessageItem({ message, onAttachmentClick }: MessageItemProps) {
   const fullBody = message.bodyText || '';
   const signatureStart = findSignatureStart(fullBody);
   const hasSignature = signatureStart !== -1;
-  
+
   // 署名前の本文のみ（省略表示用）
   const mainBody = hasSignature ? fullBody.slice(0, signatureStart).trim() : fullBody;
-  
+
   // 省略が必要かどうか（本文が長いか、署名があるか）
   const needsTruncation = mainBody.length > MAX_LENGTH || hasSignature;
-  
+
   // 表示するコンテンツ
-  const displayContent = isExpanded 
+  const displayContent = isExpanded
     ? fullBody  // 展開時は署名含む全文
-    : mainBody.length > MAX_LENGTH 
+    : mainBody.length > MAX_LENGTH
       ? mainBody.slice(0, MAX_LENGTH) + '...'
       : mainBody;
 
