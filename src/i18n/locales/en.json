@@ -93,7 +93,11 @@
     "close": "Close",
     "confirm": "Confirm",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "refresh": "Refresh",
+    "syncing": "Syncing...",
+    "syncError": "Sync error",
+    "dismiss": "Dismiss"
   },
   "sync": {
     "syncing": "Syncing...",

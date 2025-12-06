@@ -93,7 +93,11 @@
         "close": "閉じる",
         "confirm": "確認",
         "yes": "はい",
-        "no": "いいえ"
+        "no": "いいえ",
+        "refresh": "更新",
+        "syncing": "同期中...",
+        "syncError": "同期エラー",
+        "dismiss": "閉じる"
     },
     "sync": {
         "syncing": "同期中...",

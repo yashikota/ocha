@@ -289,11 +289,14 @@ pub struct Message {
     pub group_id: Option<i64>,
     pub from_email: String,
     pub from_name: Option<String>,
+    pub to_email: Option<String>,
     pub subject: Option<String>,
     pub body_text: Option<String>,
     pub body_html: Option<String>,
     pub received_at: String,
     pub is_read: bool,
+    pub is_sent: bool,
+    pub folder: String,
     #[serde(default)]
     pub attachments: Vec<Attachment>,
 }
@@ -307,11 +310,14 @@ impl Message {
             group_id: row.get(3)?,
             from_email: row.get(4)?,
             from_name: row.get(5)?,
-            subject: row.get(6)?,
-            body_text: row.get(7)?,
-            body_html: row.get(8)?,
-            received_at: row.get(9)?,
-            is_read: row.get::<_, i32>(10)? != 0,
+            to_email: row.get(6)?,
+            subject: row.get(7)?,
+            body_text: row.get(8)?,
+            body_html: row.get(9)?,
+            received_at: row.get(10)?,
+            is_read: row.get::<_, i32>(11)? != 0,
+            is_sent: row.get::<_, i32>(12)? != 0,
+            folder: row.get(13)?,
             attachments: vec![],
         })
     }
@@ -319,8 +325,8 @@ impl Message {
     pub fn list_by_group(conn: &Connection, group_id: i64) -> Result<Vec<Self>> {
         let mut stmt = conn.prepare(
             r#"
-            SELECT id, uid, message_id, group_id, from_email, from_name, subject, 
-                   body_text, body_html, received_at, is_read
+            SELECT id, uid, message_id, group_id, from_email, from_name, to_email,
+                   subject, body_text, body_html, received_at, is_read, is_sent, folder
             FROM messages
             WHERE group_id = ?1
             ORDER BY received_at ASC
@@ -339,9 +345,13 @@ impl Message {
         Ok(messages)
     }
 
-    pub fn get_latest_uid(conn: &Connection) -> Result<i64> {
+    pub fn get_latest_uid(conn: &Connection, folder: &str) -> Result<i64> {
         let uid: i64 = conn
-            .query_row("SELECT COALESCE(MAX(uid), 0) FROM messages", [], |row| row.get(0))?;
+            .query_row(
+                "SELECT COALESCE(MAX(uid), 0) FROM messages WHERE folder = ?1",
+                params![folder],
+                |row| row.get(0),
+            )?;
         Ok(uid)
     }
 
@@ -357,8 +367,9 @@ impl Message {
     pub fn insert(conn: &Connection, msg: &NewMessage) -> Result<i64> {
         conn.execute(
             r#"
-            INSERT INTO messages (uid, message_id, group_id, from_email, from_name, subject, body_text, body_html, received_at)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+            INSERT INTO messages (uid, message_id, group_id, from_email, from_name, to_email, 
+                                  subject, body_text, body_html, received_at, is_sent, folder)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
             "#,
             params![
                 msg.uid,
@@ -366,10 +377,13 @@ impl Message {
                 msg.group_id,
                 msg.from_email,
                 msg.from_name,
+                msg.to_email,
                 msg.subject,
                 msg.body_text,
                 msg.body_html,
                 msg.received_at,
+                msg.is_sent,
+                msg.folder,
             ],
         )?;
         Ok(conn.last_insert_rowid())
@@ -405,10 +419,13 @@ pub struct NewMessage {
     pub group_id: Option<i64>,
     pub from_email: String,
     pub from_name: Option<String>,
+    pub to_email: Option<String>,
     pub subject: Option<String>,
     pub body_text: Option<String>,
     pub body_html: Option<String>,
     pub received_at: String,
+    pub is_sent: bool,
+    pub folder: String,
 }
 
 // ============================================================================

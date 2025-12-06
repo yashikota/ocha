@@ -1,4 +1,5 @@
 use anyhow::Result;
+use log::info;
 use rusqlite::Connection;
 
 pub fn create_tables(conn: &Connection) -> Result<()> {
@@ -49,11 +50,14 @@ pub fn create_tables(conn: &Connection) -> Result<()> {
             group_id INTEGER REFERENCES groups(id) ON DELETE SET NULL,
             from_email TEXT NOT NULL,
             from_name TEXT,
+            to_email TEXT,
             subject TEXT,
             body_text TEXT,
             body_html TEXT,
             received_at TEXT NOT NULL,
-            is_read INTEGER NOT NULL DEFAULT 0
+            is_read INTEGER NOT NULL DEFAULT 0,
+            is_sent INTEGER NOT NULL DEFAULT 0,
+            folder TEXT NOT NULL DEFAULT 'INBOX'
         );
 
         -- 添付ファイル
@@ -85,7 +89,39 @@ pub fn create_tables(conn: &Connection) -> Result<()> {
         CREATE INDEX IF NOT EXISTS idx_attachments_message_id ON attachments(message_id);
         "#,
     )?;
+    
+    // マイグレーション: 既存のテーブルに新しいカラムを追加
+    run_migrations(conn)?;
 
+    Ok(())
+}
+
+fn run_migrations(conn: &Connection) -> Result<()> {
+    // to_emailカラムが存在するか確認
+    let has_to_email: bool = conn
+        .query_row(
+            "SELECT COUNT(*) FROM pragma_table_info('messages') WHERE name = 'to_email'",
+            [],
+            |row| row.get::<_, i32>(0),
+        )
+        .map(|count| count > 0)
+        .unwrap_or(false);
+    
+    if !has_to_email {
+        info!("Running migration: adding to_email, is_sent, folder columns to messages table");
+        
+        // 新しいカラムを追加
+        conn.execute_batch(
+            r#"
+            ALTER TABLE messages ADD COLUMN to_email TEXT;
+            ALTER TABLE messages ADD COLUMN is_sent INTEGER NOT NULL DEFAULT 0;
+            ALTER TABLE messages ADD COLUMN folder TEXT NOT NULL DEFAULT 'INBOX';
+            "#,
+        )?;
+        
+        info!("Migration completed successfully");
+    }
+    
     Ok(())
 }
 

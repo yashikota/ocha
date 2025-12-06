@@ -41,11 +41,14 @@ export interface Message {
   groupId: number;
   fromEmail: string;
   fromName?: string;
+  toEmail?: string;
   subject: string;
   bodyText?: string;
   bodyHtml?: string;
   receivedAt: string;
   isRead: boolean;
+  isSent: boolean;
+  folder: string;
   attachments: Attachment[];
 }
 
