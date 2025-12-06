@@ -36,10 +36,10 @@ const formatTime = (dateString: string): string => {
 // 引用・署名の開始位置を検出
 const findFooterStart = (text: string): number => {
   const lines = text.split('\n');
-  
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    
+
     // 署名パターン
     if (/^--\s*$/.test(line) || /^_{3,}/.test(line)) {
       return lines.slice(0, i).join('\n').length;
@@ -47,13 +47,13 @@ const findFooterStart = (text: string): number => {
     if (/^Sent from my /i.test(line) || /^iPhoneから送信/.test(line)) {
       return lines.slice(0, i).join('\n').length;
     }
-    
+
     // 引用パターン: > で始まる行
     if (line.startsWith('>')) {
       return lines.slice(0, i).join('\n').length;
     }
   }
-  
+
   return -1;
 };
 
@@ -109,13 +109,13 @@ export function MessageItem({ message, onAttachmentClick }: MessageItemProps) {
       <div className="flex justify-end px-2 py-2 overflow-hidden">
         <div className="max-w-[85%] min-w-0 flex flex-col items-end">
           <span className="text-xs text-text-sub mb-1">{formatTime(message.receivedAt)}</span>
-          
+
           {message.subject && (
             <div className="text-xs text-text-sub mb-1 text-right truncate w-full">
               {message.subject}
             </div>
           )}
-          
+
           <div className="bg-primary text-white rounded-2xl rounded-tr-sm px-4 py-2 overflow-hidden w-full">
             <p className="text-sm whitespace-pre-wrap break-all overflow-hidden">
               {linkifyText(displayContent, true)}
@@ -155,13 +155,13 @@ export function MessageItem({ message, onAttachmentClick }: MessageItemProps) {
           <span className="text-xs font-medium text-text truncate">{displayName}</span>
           <span className="text-xs text-text-sub flex-shrink-0">{formatTime(message.receivedAt)}</span>
         </div>
-        
+
         {message.subject && (
           <div className="text-xs text-text-sub mb-1 truncate w-full">
             {message.subject}
           </div>
         )}
-        
+
         <div className="bg-gray-100 text-text rounded-2xl rounded-tl-sm px-4 py-2 overflow-hidden w-full">
           <p className="text-sm whitespace-pre-wrap break-all overflow-hidden">
             {linkifyText(displayContent, false)}

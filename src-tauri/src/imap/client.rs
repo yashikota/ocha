@@ -56,17 +56,16 @@ pub fn select_inbox(session: &mut ImapSession) -> Result<()> {
     Ok(())
 }
 
-/// 送信済みフォルダを検索（属性ベース）
-pub fn find_sent_folder(session: &mut ImapSession) -> Option<String> {
+/// フォルダを属性で検索
+pub fn find_folder_by_attr(session: &mut ImapSession, attr_name: &str) -> Option<String> {
     if let Ok(folders) = session.list(Some(""), Some("*")) {
-        // 属性で\Sentを持つフォルダを探す
         for folder in folders.iter() {
             let attrs: Vec<String> = folder.attributes().iter().map(|a| format!("{:?}", a)).collect();
             debug!("Folder: {} - Attributes: {:?}", folder.name(), attrs);
 
             for attr in &attrs {
-                if attr.contains("Sent") {
-                    info!("Found sent folder by attribute: {}", folder.name());
+                if attr.contains(attr_name) {
+                    info!("Found {} folder: {}", attr_name, folder.name());
                     return Some(folder.name().to_string());
                 }
             }
@@ -74,6 +73,7 @@ pub fn find_sent_folder(session: &mut ImapSession) -> Option<String> {
     }
     None
 }
+
 
 /// 指定UIDより大きいメールを取得（初回は全件）
 pub fn fetch_messages_since_uid(

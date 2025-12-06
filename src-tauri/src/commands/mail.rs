@@ -1,4 +1,4 @@
-use log::{info, debug, error, warn};
+use log::{info, debug, error};
 use tauri::{AppHandle, Emitter};
 
 use crate::db::{self, models::{Account, Attachment, Group, Message, NewMessage}};
@@ -6,9 +6,7 @@ use crate::imap::{self, RawMessage};
 use crate::mail::parse_email;
 use crate::notification;
 
-const FOLDER_INBOX: &str = "INBOX";
-
-/// メールを同期（受信・送信両方）
+/// メールを同期（すべてのメールフォルダから）
 #[tauri::command]
 pub async fn sync_messages(app: AppHandle) -> Result<Vec<Message>, String> {
     let account = db::with_db(|conn| Account::get(conn))
@@ -24,54 +22,35 @@ pub async fn sync_messages(app: AppHandle) -> Result<Vec<Message>, String> {
 
     info!("Starting mail sync for {}", my_email);
 
-    // 受信メールを同期
-    let (inbox_messages, is_initial_sync) = sync_folder(&my_email, &access_token, FOLDER_INBOX, false).await?;
+    // 「すべてのメール」フォルダを検索
+    let all_mail_folder = find_folder(&my_email, &access_token, "All").await
+        .unwrap_or_else(|| "INBOX".to_string());
 
-    // 送信メールを同期（フォルダを自動検出）
-    let mut sent_messages = Vec::new();
-    let sent_folder_found = find_sent_folder_name(&my_email, &access_token).await;
+    info!("Using folder: {}", all_mail_folder);
 
-    if let Some(ref folder_name) = sent_folder_found {
-        match sync_folder(&my_email, &access_token, folder_name, true).await {
-            Ok((messages, _)) => {
-                sent_messages = messages;
-            }
-            Err(e) => {
-                warn!("Failed to sync sent folder {}: {}", folder_name, e);
-            }
-        }
-    } else {
-        warn!("Could not find sent mail folder, skipping sent mail sync");
-    }
+    // すべてのメールを同期
+    let (all_messages, is_initial_sync) = sync_folder(&my_email, &access_token, &all_mail_folder).await?;
 
     // メールを保存
-    let mut all_saved = Vec::new();
-
-    let saved_inbox = save_messages(&inbox_messages, &my_email, false, FOLDER_INBOX)?;
-    all_saved.extend(saved_inbox);
-
-    if let Some(ref folder) = sent_folder_found {
-        let saved_sent = save_messages(&sent_messages, &my_email, true, folder)?;
-        all_saved.extend(saved_sent);
-    }
+    let all_saved = save_messages(&all_messages, &my_email, &all_mail_folder)?;
 
     info!("Synced {} messages total", all_saved.len());
 
-    // 新着通知（受信メールのみ、初回同期は除く）
-    let new_inbox_count = inbox_messages.len();
-    if new_inbox_count > 0 && !is_initial_sync {
+    // 新着通知（初回同期は除く）
+    let new_count = all_saved.iter().filter(|m| !m.is_sent).count();
+    if new_count > 0 && !is_initial_sync {
         let settings = db::with_db(|conn| crate::db::models::Settings::get(conn))
             .map_err(|e| e.to_string())?;
 
         if settings.notifications_enabled {
-            if new_inbox_count == 1 {
+            if new_count == 1 {
                 if let Some(msg) = all_saved.iter().find(|m| !m.is_sent) {
                     let from_name = msg.from_name.as_deref().unwrap_or(&msg.from_email);
                     let subject = msg.subject.as_deref().unwrap_or("(件名なし)");
                     let _ = notification::notify_new_mail(&app, from_name, subject);
                 }
             } else {
-                let _ = notification::notify_new_mails(&app, new_inbox_count);
+                let _ = notification::notify_new_mails(&app, new_count);
             }
         }
     }
@@ -84,22 +63,23 @@ pub async fn sync_messages(app: AppHandle) -> Result<Vec<Message>, String> {
     Ok(all_saved)
 }
 
-/// 送信フォルダ名を自動検出
-async fn find_sent_folder_name(email: &str, access_token: &str) -> Option<String> {
+/// フォルダを属性で検索
+async fn find_folder(email: &str, access_token: &str, attr: &str) -> Option<String> {
     let email = email.to_string();
     let access_token = access_token.to_string();
+    let attr = attr.to_string();
 
     tokio::task::spawn_blocking(move || {
         let mut session = imap::connect(&email, &access_token).ok()?;
-        imap::find_sent_folder(&mut session)
+        imap::find_folder_by_attr(&mut session, &attr)
     })
     .await
     .ok()
     .flatten()
 }
 
-/// 特定のフォルダからメールを同期（初回かどうかも返す）
-async fn sync_folder(email: &str, access_token: &str, folder: &str, _is_sent: bool) -> Result<(Vec<RawMessage>, bool), String> {
+/// 特定のフォルダからメールを同期
+async fn sync_folder(email: &str, access_token: &str, folder: &str) -> Result<(Vec<RawMessage>, bool), String> {
     let last_uid = db::with_db(|conn| Message::get_latest_uid(conn, folder))
         .map_err(|e| e.to_string())? as u32;
     let is_initial = last_uid == 0;
@@ -113,11 +93,7 @@ async fn sync_folder(email: &str, access_token: &str, folder: &str, _is_sent: bo
 
     let raw_messages = tokio::task::spawn_blocking(move || {
         let mut session = imap::connect(&email, &access_token)?;
-
-        // フォルダを選択
         session.select(&folder_clone).map_err(|e| anyhow::anyhow!("Failed to select folder {}: {}", folder_clone, e))?;
-
-        // メールを取得
         imap::fetch_messages_since_uid(&mut session, last_uid)
     })
     .await
@@ -129,12 +105,12 @@ async fn sync_folder(email: &str, access_token: &str, folder: &str, _is_sent: bo
     Ok((raw_messages, is_initial))
 }
 
-/// 生メールを保存
-fn save_messages(raw_messages: &[RawMessage], my_email: &str, is_sent: bool, folder: &str) -> Result<Vec<Message>, String> {
+/// 生メールを保存（送信/受信はFromアドレスで判別）
+fn save_messages(raw_messages: &[RawMessage], my_email: &str, folder: &str) -> Result<Vec<Message>, String> {
     let mut saved = Vec::new();
+    let my_email_lower = my_email.to_lowercase();
 
     for raw in raw_messages {
-        // メールをパース
         let parsed = match parse_email(raw) {
             Ok(p) => p,
             Err(e) => {
@@ -152,18 +128,18 @@ fn save_messages(raw_messages: &[RawMessage], my_email: &str, is_sent: bool, fol
             }
         }
 
+        // 送信/受信を判別（Fromが自分なら送信）
+        let is_sent = parsed.from_email.to_lowercase() == my_email_lower;
+
         // グループを決定
-        // 送信メールの場合はTo、受信メールの場合はFromでグループを検索
         let (contact_email, contact_name) = if is_sent {
-            // 送信メール: 宛先でグループを決定
             (parsed.to_email.clone().unwrap_or_default(), parsed.to_name.clone())
         } else {
-            // 受信メール: 送信者でグループを決定
             (parsed.from_email.clone(), parsed.from_name.clone())
         };
 
-        // 自分宛ての場合はスキップ（または別処理）
-        if contact_email.is_empty() || contact_email.to_lowercase() == my_email.to_lowercase() {
+        // 自分宛て/自分からのメールはスキップ
+        if contact_email.is_empty() || contact_email.to_lowercase() == my_email_lower {
             debug!("Skipping self-addressed email");
             continue;
         }
@@ -194,7 +170,6 @@ fn save_messages(raw_messages: &[RawMessage], my_email: &str, is_sent: bool, fol
         let message_id = db::with_db(|conn| Message::insert(conn, &new_message))
             .map_err(|e| e.to_string())?;
 
-        // 添付ファイルを保存
         for attachment in &parsed.attachments {
             db::with_db(|conn| {
                 Attachment::insert(
@@ -207,7 +182,6 @@ fn save_messages(raw_messages: &[RawMessage], my_email: &str, is_sent: bool, fol
             }).map_err(|e| e.to_string())?;
         }
 
-        // 保存したメッセージを取得
         let messages = db::with_db(|conn| Message::list_by_group(conn, group_id))
             .map_err(|e| e.to_string())?;
 
@@ -219,35 +193,30 @@ fn save_messages(raw_messages: &[RawMessage], my_email: &str, is_sent: bool, fol
     Ok(saved)
 }
 
-/// グループ内のメッセージを取得
 #[tauri::command]
 pub fn get_messages(group_id: i64) -> Result<Vec<Message>, String> {
     db::with_db(|conn| Message::list_by_group(conn, group_id))
         .map_err(|e| e.to_string())
 }
 
-/// メッセージを既読にする
 #[tauri::command]
 pub fn mark_as_read(message_id: i64) -> Result<(), String> {
     db::with_db(|conn| Message::mark_as_read(conn, message_id))
         .map_err(|e| e.to_string())
 }
 
-/// グループ内のメッセージをすべて既読にする
 #[tauri::command]
 pub fn mark_group_as_read(group_id: i64) -> Result<(), String> {
     db::with_db(|conn| Message::mark_group_as_read(conn, group_id))
         .map_err(|e| e.to_string())
 }
 
-/// 未読数を取得
 #[tauri::command]
 pub fn get_unread_counts() -> Result<Vec<(i64, i64)>, String> {
     db::with_db(|conn| Message::get_unread_counts(conn))
         .map_err(|e| e.to_string())
 }
 
-/// IMAP監視を開始
 #[tauri::command]
 pub async fn start_idle_watch(app: AppHandle) -> Result<(), String> {
     let account = db::with_db(|conn| Account::get(conn))
@@ -258,36 +227,39 @@ pub async fn start_idle_watch(app: AppHandle) -> Result<(), String> {
         .clone()
         .ok_or("No access token")?;
 
-    let last_uid = db::with_db(|conn| Message::get_latest_uid(conn, FOLDER_INBOX))
+    // すべてのメールフォルダを使用
+    let all_mail_folder = find_folder(&account.email, &access_token, "All").await
+        .unwrap_or_else(|| "INBOX".to_string());
+
+    let last_uid = db::with_db(|conn| Message::get_latest_uid(conn, &all_mail_folder))
         .map_err(|e| e.to_string())? as u32;
 
     let my_email = account.email.clone();
     let app_clone = app.clone();
+    let folder = all_mail_folder.clone();
 
     imap::start_idle_watch(
         account.email.clone(),
         access_token,
         last_uid,
         move |raw_messages| {
-            // 新着メールを処理
-            if let Ok(saved) = save_messages(&raw_messages, &my_email, false, FOLDER_INBOX) {
+            if let Ok(saved) = save_messages(&raw_messages, &my_email, &folder) {
                 if !saved.is_empty() {
-                    // 通知
                     let settings = db::with_db(|conn| crate::db::models::Settings::get(conn));
                     if let Ok(settings) = settings {
                         if settings.notifications_enabled {
-                            if saved.len() == 1 {
-                                let msg = &saved[0];
-                                let from_name = msg.from_name.as_deref().unwrap_or(&msg.from_email);
-                                let subject = msg.subject.as_deref().unwrap_or("(件名なし)");
-                                let _ = notification::notify_new_mail(&app_clone, from_name, subject);
-                            } else {
-                                let _ = notification::notify_new_mails(&app_clone, saved.len());
+                            let new_count = saved.iter().filter(|m| !m.is_sent).count();
+                            if new_count == 1 {
+                                if let Some(msg) = saved.iter().find(|m| !m.is_sent) {
+                                    let from_name = msg.from_name.as_deref().unwrap_or(&msg.from_email);
+                                    let subject = msg.subject.as_deref().unwrap_or("(件名なし)");
+                                    let _ = notification::notify_new_mail(&app_clone, from_name, subject);
+                                }
+                            } else if new_count > 1 {
+                                let _ = notification::notify_new_mails(&app_clone, new_count);
                             }
                         }
                     }
-
-                    // フロントエンドに通知
                     let _ = app_clone.emit("new-messages", saved.len());
                 }
             }
@@ -295,7 +267,6 @@ pub async fn start_idle_watch(app: AppHandle) -> Result<(), String> {
     ).map_err(|e| e.to_string())
 }
 
-/// IMAP監視を停止
 #[tauri::command]
 pub fn stop_idle_watch() -> Result<(), String> {
     imap::stop_idle_watch();
