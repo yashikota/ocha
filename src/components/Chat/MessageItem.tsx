@@ -158,8 +158,8 @@ export function MessageItem({ message, previousBodies = [], onAttachmentClick }:
   // 送信メッセージ（右側・緑）
   if (isSent) {
     return (
-      <div className="flex justify-end px-4 py-2 overflow-hidden">
-        <div className="max-w-[75%] min-w-0 flex flex-col items-end">
+      <div className="flex justify-end px-2 py-2 overflow-hidden">
+        <div className="max-w-[85%] min-w-0 flex flex-col items-end">
           <span className="text-xs text-text-sub mb-1">{formatTime(message.receivedAt)}</span>
 
           {message.subject && (
@@ -201,8 +201,8 @@ export function MessageItem({ message, previousBodies = [], onAttachmentClick }:
 
   // 受信メッセージ（左側・グレー）
   return (
-    <div className={`flex justify-start px-4 py-2 overflow-hidden ${!message.isRead ? 'bg-selected/20' : ''}`}>
-      <div className="max-w-[75%] min-w-0 flex flex-col items-start">
+    <div className={`flex justify-start px-2 py-2 overflow-hidden ${!message.isRead ? 'bg-selected/20' : ''}`}>
+      <div className="max-w-[85%] min-w-0 flex flex-col items-start">
         <div className="flex items-center gap-2 mb-1 max-w-full">
           <span className="text-xs font-medium text-text truncate">{displayName}</span>
           <span className="text-xs text-text-sub flex-shrink-0">{formatTime(message.receivedAt)}</span>
