@@ -57,44 +57,112 @@ pub fn select_inbox(session: &mut ImapSession) -> Result<()> {
     Ok(())
 }
 
-/// フォルダ一覧を取得
-pub fn list_folders(session: &mut ImapSession) -> Result<Vec<String>> {
-    let folders = session.list(Some(""), Some("*"))?;
-    let folder_names: Vec<String> = folders
-        .iter()
-        .map(|f| f.name().to_string())
-        .collect();
-    Ok(folder_names)
-}
-
-/// 送信済みフォルダを検索
+/// 送信済みフォルダを検索（属性ベース）
 pub fn find_sent_folder(session: &mut ImapSession) -> Option<String> {
-    if let Ok(folders) = list_folders(session) {
-        // Gmailの送信済みフォルダを探す（ロケール対応）
-        let sent_patterns = [
-            "Sent",          // 部分一致
-            "送信済み",        // 日本語
-            "已发送",          // 中国語
-            "Enviados",      // スペイン語
-            "Envoyés",       // フランス語
-            "Gesendet",      // ドイツ語
-        ];
-
-        for folder in &folders {
-            // 完全一致または部分一致で検索
-            let folder_lower = folder.to_lowercase();
-            for pattern in &sent_patterns {
-                if folder_lower.contains(&pattern.to_lowercase()) {
-                    info!("Found sent folder: {}", folder);
-                    return Some(folder.clone());
+    // XLISTまたはLISTで属性を取得
+    if let Ok(folders) = session.list(Some(""), Some("*")) {
+        // 1. まず属性で\Sentを持つフォルダを探す
+        for folder in folders.iter() {
+            let attrs: Vec<String> = folder.attributes().iter().map(|a| format!("{:?}", a)).collect();
+            debug!("Folder: {} - Attributes: {:?}", folder.name(), attrs);
+            
+            // 属性に"Sent"が含まれているかチェック
+            for attr in &attrs {
+                if attr.contains("Sent") {
+                    info!("Found sent folder by attribute: {}", folder.name());
+                    return Some(folder.name().to_string());
                 }
             }
         }
-
-        // フォルダ一覧をログに出力
-        debug!("Available folders: {:?}", folders);
+        
+        // 2. UTF-7デコードしてパターンマッチ
+        let sent_patterns = ["Sent", "送信済み", "送信済"];
+        
+        for folder in folders.iter() {
+            let name = folder.name();
+            let decoded = decode_utf7_imap(name);
+            
+            for pattern in &sent_patterns {
+                if decoded.contains(pattern) {
+                    info!("Found sent folder by name: {} (decoded: {})", name, decoded);
+                    return Some(name.to_string());
+                }
+            }
+        }
+        
+        // フォルダ一覧をデコードしてログに出力
+        let decoded_folders: Vec<String> = folders.iter()
+            .map(|f| format!("{} -> {}", f.name(), decode_utf7_imap(f.name())))
+            .collect();
+        debug!("Available folders: {:?}", decoded_folders);
     }
     None
+}
+
+/// IMAP UTF-7 (Modified UTF-7) をデコード
+fn decode_utf7_imap(s: &str) -> String {
+    use base64::Engine;
+    
+    let mut result = String::new();
+    let mut i = 0;
+    let chars: Vec<char> = s.chars().collect();
+    
+    while i < chars.len() {
+        if chars[i] == '&' {
+            // エンコードされた部分の開始
+            if i + 1 < chars.len() && chars[i + 1] == '-' {
+                // &- は & 自体を表す
+                result.push('&');
+                i += 2;
+            } else {
+                // Base64エンコードされた部分を探す
+                let start = i + 1;
+                let mut end = start;
+                while end < chars.len() && chars[end] != '-' {
+                    end += 1;
+                }
+                
+                if end <= chars.len() {
+                    let encoded: String = chars[start..end].iter().collect();
+                    // Modified Base64: , -> /
+                    let standard_b64 = encoded.replace(',', "/");
+                    
+                    // パディングを追加
+                    let padded = match standard_b64.len() % 4 {
+                        2 => format!("{}==", standard_b64),
+                        3 => format!("{}=", standard_b64),
+                        _ => standard_b64,
+                    };
+                    
+                    if let Ok(bytes) = base64::engine::general_purpose::STANDARD.decode(&padded) {
+                        // UTF-16BEとしてデコード
+                        let utf16: Vec<u16> = bytes.chunks(2)
+                            .filter_map(|chunk| {
+                                if chunk.len() == 2 {
+                                    Some(u16::from_be_bytes([chunk[0], chunk[1]]))
+                                } else {
+                                    None
+                                }
+                            })
+                            .collect();
+                        
+                        if let Ok(decoded) = String::from_utf16(&utf16) {
+                            result.push_str(&decoded);
+                        }
+                    }
+                    i = end + 1;
+                } else {
+                    result.push(chars[i]);
+                    i += 1;
+                }
+            }
+        } else {
+            result.push(chars[i]);
+            i += 1;
+        }
+    }
+    
+    result
 }
 
 /// 指定UIDより大きいメールを取得

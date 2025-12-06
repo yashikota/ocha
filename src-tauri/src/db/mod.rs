@@ -37,15 +37,3 @@ where
     f(&conn)
 }
 
-/// トランザクションを使って処理を実行する
-pub fn with_transaction<F, T>(f: F) -> Result<T>
-where
-    F: FnOnce(&Connection) -> Result<T>,
-{
-    let mut conn = get_connection().lock();
-    let tx = conn.transaction()?;
-    let result = f(&tx)?;
-    tx.commit()?;
-    Ok(result)
-}
-

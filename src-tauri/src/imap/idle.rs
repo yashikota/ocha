@@ -98,8 +98,3 @@ where
 pub fn stop_idle_watch() {
     IDLE_STOP.store(true, Ordering::SeqCst);
 }
-
-/// IDLE監視が実行中かどうか
-pub fn is_idle_running() -> bool {
-    IDLE_RUNNING.load(Ordering::SeqCst)
-}

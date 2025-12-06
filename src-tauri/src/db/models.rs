@@ -101,14 +101,6 @@ impl Account {
         Ok(conn.last_insert_rowid())
     }
 
-    pub fn update_tokens(conn: &Connection, id: i64, access_token: &str, expires_at: &str) -> Result<()> {
-        conn.execute(
-            "UPDATE accounts SET access_token = ?1, token_expires_at = ?2 WHERE id = ?3",
-            params![access_token, expires_at, id],
-        )?;
-        Ok(())
-    }
-
     pub fn delete(conn: &Connection, id: i64) -> Result<()> {
         conn.execute("DELETE FROM accounts WHERE id = ?1", params![id])?;
         Ok(())
@@ -473,14 +465,6 @@ impl Attachment {
             params![message_id, filename, mime_type, size],
         )?;
         Ok(conn.last_insert_rowid())
-    }
-
-    pub fn update_local_path(conn: &Connection, id: i64, local_path: &str) -> Result<()> {
-        conn.execute(
-            "UPDATE attachments SET local_path = ?1 WHERE id = ?2",
-            params![local_path, id],
-        )?;
-        Ok(())
     }
 }
 
