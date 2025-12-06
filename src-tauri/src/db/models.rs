@@ -191,6 +191,29 @@ impl Group {
         Ok(())
     }
 
+    /// グループを統合（source_idのメンバーとメッセージをtarget_idに移動し、source_idを削除）
+    pub fn merge(conn: &Connection, target_id: i64, source_id: i64) -> Result<()> {
+        // source_idのメッセージをtarget_idに移動
+        conn.execute(
+            "UPDATE messages SET group_id = ?1 WHERE group_id = ?2",
+            params![target_id, source_id],
+        )?;
+
+        // source_idのメンバーをtarget_idに移動（重複は無視）
+        conn.execute(
+            r#"
+            INSERT OR IGNORE INTO group_members (group_id, email, display_name)
+            SELECT ?1, email, display_name FROM group_members WHERE group_id = ?2
+            "#,
+            params![target_id, source_id],
+        )?;
+
+        // source_idを削除（group_membersはCASCADE削除される）
+        conn.execute("DELETE FROM groups WHERE id = ?1", params![source_id])?;
+
+        Ok(())
+    }
+
     /// メールアドレスからグループを検索
     pub fn find_by_email(conn: &Connection, email: &str) -> Result<Option<Self>> {
         let mut stmt = conn.prepare(

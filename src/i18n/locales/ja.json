@@ -112,5 +112,23 @@
         "syncing": "同期中...",
         "lastSync": "最終同期: {{time}}",
         "syncNow": "今すぐ同期"
+    },
+    "groupEdit": {
+        "title": "グループ編集",
+        "name": "グループ名",
+        "options": "オプション",
+        "pin": "ピン留めする",
+        "notify": "通知を有効にする",
+        "members": "メールアドレス",
+        "noMembers": "メールアドレスがありません",
+        "merge": "グループを統合",
+        "mergeDescription": "別のグループをこのグループに統合します。選択したグループのメールアドレスとメッセージがこのグループに移動されます。",
+        "selectGroup": "統合するグループを選択...",
+        "mergeButton": "統合",
+        "mergeConfirm": "「{{source}}」を「{{target}}」に統合しますか？この操作は元に戻せません。",
+        "dangerZone": "危険な操作",
+        "deleteWarning": "グループを削除すると、関連するメッセージもすべて削除されます。",
+        "deleteButton": "グループを削除",
+        "deleteConfirm": "「{{name}}」を削除しますか？この操作は元に戻せません。"
     }
 }

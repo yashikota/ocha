@@ -121,6 +121,10 @@ export async function removeEmailFromGroup(groupId: number, email: string): Prom
   return invoke('remove_email_from_group', { groupId, email });
 }
 
+export async function mergeGroups(targetId: number, sourceId: number): Promise<void> {
+  return invoke('merge_groups', { targetId, sourceId });
+}
+
 // ============================================================================
 // Attachments
 // ============================================================================

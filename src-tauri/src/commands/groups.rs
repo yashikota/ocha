@@ -62,3 +62,12 @@ pub fn remove_email_from_group(group_id: i64, email: String) -> Result<(), Strin
         .map_err(|e| e.to_string())
 }
 
+/// グループを統合（source_idのメンバーとメッセージをtarget_idに移動し、source_idを削除）
+#[tauri::command]
+pub fn merge_groups(target_id: i64, source_id: i64) -> Result<(), String> {
+    if target_id == source_id {
+        return Err("Cannot merge a group with itself".to_string());
+    }
+    db::with_db(|conn| Group::merge(conn, target_id, source_id))
+        .map_err(|e| e.to_string())
+}

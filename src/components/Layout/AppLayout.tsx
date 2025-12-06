@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Sidebar } from '../Sidebar';
 import { ChatView } from '../Chat';
 import { SettingsModal } from '../Settings';
+import { GroupEditModal } from '../Group';
 import { useMessages } from '../../hooks/useMessages';
 import { useGroups } from '../../hooks/useGroups';
 
@@ -58,23 +59,24 @@ export function AppLayout() {
           </div>
         </div>
       )}
-      
+
       {/* エラー表示 */}
       {syncError && (
         <div className="fixed top-0 left-0 right-0 bg-red-500 text-white text-center py-1 text-sm z-50">
           {t('common.syncError')}: {syncError}
-          <button 
-            onClick={() => setSyncError(null)} 
+          <button
+            onClick={() => setSyncError(null)}
             className="ml-2 underline"
           >
             {t('common.dismiss')}
           </button>
         </div>
       )}
-      
+
       <Sidebar onRefresh={refreshAll} />
       <ChatView />
       <SettingsModal />
+      <GroupEditModal />
     </div>
   );
 }

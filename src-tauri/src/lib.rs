@@ -95,6 +95,7 @@ pub fn run() {
             commands::get_group_members,
             commands::add_email_to_group,
             commands::remove_email_from_group,
+            commands::merge_groups,
             // Attachments
             commands::download_attachment,
             commands::open_attachment,

@@ -112,5 +112,23 @@
         "syncing": "Syncing...",
         "lastSync": "Last sync: {{time}}",
         "syncNow": "Sync Now"
+    },
+    "groupEdit": {
+        "title": "Edit Group",
+        "name": "Group Name",
+        "options": "Options",
+        "pin": "Pin this group",
+        "notify": "Enable notifications",
+        "members": "Email Addresses",
+        "noMembers": "No email addresses",
+        "merge": "Merge Groups",
+        "mergeDescription": "Merge another group into this one. The selected group's email addresses and messages will be moved to this group.",
+        "selectGroup": "Select a group to merge...",
+        "mergeButton": "Merge",
+        "mergeConfirm": "Merge \"{{source}}\" into \"{{target}}\"? This action cannot be undone.",
+        "dangerZone": "Danger Zone",
+        "deleteWarning": "Deleting the group will also delete all associated messages.",
+        "deleteButton": "Delete Group",
+        "deleteConfirm": "Delete \"{{name}}\"? This action cannot be undone."
     }
 }
