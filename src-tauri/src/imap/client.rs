@@ -57,6 +57,46 @@ pub fn select_inbox(session: &mut ImapSession) -> Result<()> {
     Ok(())
 }
 
+/// フォルダ一覧を取得
+pub fn list_folders(session: &mut ImapSession) -> Result<Vec<String>> {
+    let folders = session.list(Some(""), Some("*"))?;
+    let folder_names: Vec<String> = folders
+        .iter()
+        .map(|f| f.name().to_string())
+        .collect();
+    Ok(folder_names)
+}
+
+/// 送信済みフォルダを検索
+pub fn find_sent_folder(session: &mut ImapSession) -> Option<String> {
+    if let Ok(folders) = list_folders(session) {
+        // Gmailの送信済みフォルダを探す（ロケール対応）
+        let sent_patterns = [
+            "Sent",          // 部分一致
+            "送信済み",        // 日本語
+            "已发送",          // 中国語
+            "Enviados",      // スペイン語
+            "Envoyés",       // フランス語
+            "Gesendet",      // ドイツ語
+        ];
+        
+        for folder in &folders {
+            // 完全一致または部分一致で検索
+            let folder_lower = folder.to_lowercase();
+            for pattern in &sent_patterns {
+                if folder_lower.contains(&pattern.to_lowercase()) {
+                    info!("Found sent folder: {}", folder);
+                    return Some(folder.clone());
+                }
+            }
+        }
+        
+        // フォルダ一覧をログに出力
+        debug!("Available folders: {:?}", folders);
+    }
+    None
+}
+
 /// 指定UIDより大きいメールを取得
 pub fn fetch_messages_since_uid(
     session: &mut ImapSession,
@@ -169,76 +209,93 @@ fn parse_fetch(fetch: &imap::types::Fetch) -> Option<RawMessage> {
     })
 }
 
-/// MIMEエンコードされたヘッダーをデコード（mailparseを使用）
+/// MIMEエンコードされたヘッダーをデコード
 fn decode_mime_header(s: &str) -> String {
-    // mailparseのRFC2047デコーダーを使用
-    match mailparse::parse_header(format!("Subject: {}", s).as_bytes()) {
-        Ok((header, _)) => {
-            header.get_value()
-        }
-        Err(_) => {
-            // フォールバック: 手動デコード
-            decode_mime_header_manual(s)
-        }
+    // エンコードされた部分がなければそのまま返す
+    if !s.contains("=?") {
+        return s.to_string();
     }
+    
+    // 手動デコードを使用（より信頼性が高い）
+    decode_mime_header_manual(s)
 }
 
-/// 手動MIMEヘッダーデコード（フォールバック用）
+/// 手動MIMEヘッダーデコード（RFC 2047）
 fn decode_mime_header_manual(s: &str) -> String {
-    use base64::Engine;
-
-    // =?charset?encoding?text?= パターンを処理
+    // 正規表現パターン: =?charset?encoding?text?=
     let mut result = String::new();
-    let mut remaining = s;
-
-    while !remaining.is_empty() {
-        if let Some(start) = remaining.find("=?") {
-            // エンコードされた部分の前のテキストを追加
-            result.push_str(&remaining[..start]);
-            remaining = &remaining[start..];
-
-            // =?charset?encoding?text?= を探す
-            if let Some(end) = remaining[2..].find("?=") {
-                let encoded_part = &remaining[..end + 4];
-                let parts: Vec<&str> = encoded_part[2..end + 2].split('?').collect();
-
-                if parts.len() >= 3 {
-                    let charset = parts[0];
-                    let encoding = parts[1].to_uppercase();
-                    let text = parts[2];
-
-                    let decoded_bytes = if encoding == "B" {
-                        base64::engine::general_purpose::STANDARD.decode(text).ok()
-                    } else if encoding == "Q" {
-                        decode_quoted_printable(text)
-                    } else {
-                        None
-                    };
-
-                    if let Some(bytes) = decoded_bytes {
-                        let decoded_text = decode_charset(&bytes, charset);
-                        result.push_str(&decoded_text);
-                    } else {
-                        result.push_str(encoded_part);
+    let mut i = 0;
+    let bytes = s.as_bytes();
+    
+    while i < bytes.len() {
+        // =? を探す
+        if i + 1 < bytes.len() && bytes[i] == b'=' && bytes[i + 1] == b'?' {
+            // エンコードされた部分を解析
+            if let Some((decoded, consumed)) = parse_encoded_word(&s[i..]) {
+                result.push_str(&decoded);
+                i += consumed;
+                // 連続エンコード部分間の空白をスキップ
+                while i < bytes.len() && (bytes[i] == b' ' || bytes[i] == b'\t') {
+                    if i + 1 < bytes.len() && bytes[i + 1] == b'=' {
+                        i += 1; // 空白をスキップ
+                        break;
                     }
-                } else {
-                    result.push_str(encoded_part);
+                    i += 1;
                 }
-
-                remaining = &remaining[end + 4..];
-                // 連続したエンコード部分の間の空白をスキップ
-                remaining = remaining.trim_start();
-            } else {
-                result.push_str(remaining);
-                break;
+                continue;
             }
+        }
+        
+        // 通常の文字を追加
+        if let Some(c) = s[i..].chars().next() {
+            result.push(c);
+            i += c.len_utf8();
         } else {
-            result.push_str(remaining);
-            break;
+            i += 1;
         }
     }
-
+    
     result
+}
+
+/// =?charset?encoding?text?= 形式をパース
+fn parse_encoded_word(s: &str) -> Option<(String, usize)> {
+    use base64::Engine;
+    
+    if !s.starts_with("=?") {
+        return None;
+    }
+    
+    // =?charset?encoding?text?= の各部分を抽出
+    let rest = &s[2..];
+    
+    // charset を探す
+    let charset_end = rest.find('?')?;
+    let charset = &rest[..charset_end];
+    let rest = &rest[charset_end + 1..];
+    
+    // encoding を探す
+    let encoding_end = rest.find('?')?;
+    let encoding = &rest[..encoding_end];
+    let rest = &rest[encoding_end + 1..];
+    
+    // text と ?= を探す
+    let text_end = rest.find("?=")?;
+    let text = &rest[..text_end];
+    
+    // 全体の長さ: =? + charset + ? + encoding + ? + text + ?=
+    let total_len = 2 + charset_end + 1 + encoding_end + 1 + text_end + 2;
+    
+    // デコード
+    let decoded_bytes = match encoding.to_uppercase().as_str() {
+        "B" => base64::engine::general_purpose::STANDARD.decode(text).ok()?,
+        "Q" => decode_quoted_printable(text)?,
+        _ => return None,
+    };
+    
+    let decoded_text = decode_charset(&decoded_bytes, charset);
+    
+    Some((decoded_text, total_len))
 }
 
 /// Quoted-Printableデコード

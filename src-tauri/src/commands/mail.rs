@@ -7,14 +7,6 @@ use crate::mail::parse_email;
 use crate::notification;
 
 const FOLDER_INBOX: &str = "INBOX";
-// Gmailの送信済みフォルダ名（ロケールによって異なる）
-const SENT_FOLDER_NAMES: &[&str] = &[
-    "[Gmail]/Sent Mail",      // English
-    "[Gmail]/送信済みメール",   // Japanese
-    "[Gmail]/Sent",           // Alternative
-    "Sent",                   // Generic
-    "Sent Items",             // Generic
-];
 
 /// メールを同期（受信・送信両方）
 #[tauri::command]
@@ -22,61 +14,55 @@ pub async fn sync_messages(app: AppHandle) -> Result<Vec<Message>, String> {
     let account = db::with_db(|conn| Account::get(conn))
         .map_err(|e| e.to_string())?
         .ok_or("Not authenticated")?;
-    
+
     let access_token = account.access_token
         .as_ref()
         .ok_or("No access token")?
         .clone();
-    
+
     let my_email = account.email.clone();
-    
+
     info!("Starting mail sync for {}", my_email);
-    
+
     // 受信メールを同期
     let inbox_messages = sync_folder(&my_email, &access_token, FOLDER_INBOX, false).await?;
-    
-    // 送信メールを同期（複数のフォルダ名を試す）
+
+    // 送信メールを同期（フォルダを自動検出）
     let mut sent_messages = Vec::new();
-    let mut sent_folder_found = None;
+    let sent_folder_found = find_sent_folder_name(&my_email, &access_token).await;
     
-    for folder_name in SENT_FOLDER_NAMES {
+    if let Some(ref folder_name) = sent_folder_found {
         match sync_folder(&my_email, &access_token, folder_name, true).await {
             Ok(messages) => {
-                info!("Found sent folder: {}", folder_name);
                 sent_messages = messages;
-                sent_folder_found = Some(folder_name.to_string());
-                break;
             }
             Err(e) => {
-                debug!("Sent folder {} not found: {}", folder_name, e);
-                continue;
+                warn!("Failed to sync sent folder {}: {}", folder_name, e);
             }
         }
-    }
-    
-    if sent_folder_found.is_none() {
+    } else {
         warn!("Could not find sent mail folder, skipping sent mail sync");
     }
-    
+
     // メールを保存
     let mut all_saved = Vec::new();
-    
+
     let saved_inbox = save_messages(&inbox_messages, &my_email, false, FOLDER_INBOX)?;
     all_saved.extend(saved_inbox);
-    
+
     if let Some(ref folder) = sent_folder_found {
         let saved_sent = save_messages(&sent_messages, &my_email, true, folder)?;
         all_saved.extend(saved_sent);
     }
-    
+
     info!("Synced {} messages total", all_saved.len());
-    
+
     // 新着通知（受信メールのみ）
     let new_inbox_count = inbox_messages.len();
     if new_inbox_count > 0 {
         let settings = db::with_db(|conn| crate::db::models::Settings::get(conn))
             .map_err(|e| e.to_string())?;
-        
+
         if settings.notifications_enabled {
             if new_inbox_count == 1 {
                 if let Some(msg) = all_saved.iter().find(|m| !m.is_sent) {
@@ -89,13 +75,27 @@ pub async fn sync_messages(app: AppHandle) -> Result<Vec<Message>, String> {
             }
         }
     }
-    
+
     // フロントエンドに通知
     if !all_saved.is_empty() {
         let _ = app.emit("new-messages", all_saved.len());
     }
-    
+
     Ok(all_saved)
+}
+
+/// 送信フォルダ名を自動検出
+async fn find_sent_folder_name(email: &str, access_token: &str) -> Option<String> {
+    let email = email.to_string();
+    let access_token = access_token.to_string();
+    
+    tokio::task::spawn_blocking(move || {
+        let mut session = imap::connect(&email, &access_token).ok()?;
+        imap::find_sent_folder(&mut session)
+    })
+    .await
+    .ok()
+    .flatten()
 }
 
 /// 特定のフォルダからメールを同期

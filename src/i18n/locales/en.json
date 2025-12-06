@@ -46,7 +46,9 @@
     "noMessages": "No messages",
     "noSubject": "(No subject)",
     "attachment": "Attachment",
-    "attachments": "{{count}} attachments"
+    "attachments": "{{count}} attachments",
+    "expand": "Read more",
+    "collapse": "Collapse"
   },
   "settings": {
     "title": "Settings",
@@ -80,6 +82,14 @@
       "email": "Email",
       "logout": "Sign Out",
       "logoutConfirm": "Are you sure you want to sign out?"
+    },
+    "data": {
+      "title": "Data Management",
+      "resetDescription": "To fix encoding issues, reset messages and re-sync.",
+      "resetButton": "Reset Messages",
+      "resetConfirm": "Delete all messages and groups? You will need to re-sync.",
+      "resetSuccess": "Reset complete. Reloading app.",
+      "resetError": "Failed to reset."
     }
   },
   "common": {

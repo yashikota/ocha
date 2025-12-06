@@ -5,7 +5,7 @@ import { settingsModalOpenAtom } from '../../atoms/uiAtom';
 import { settingsAtom } from '../../atoms/settingsAtom';
 import { accountAtom } from '../../atoms/authAtom';
 import { useAuth } from '../../hooks/useAuth';
-import { getSettings, updateSettings } from '../../hooks/useTauri';
+import { getSettings, updateSettings, resetMessages } from '../../hooks/useTauri';
 import type { Settings } from '../../types';
 
 export function SettingsModal() {
@@ -119,6 +119,31 @@ export function SettingsModal() {
                   className="w-20 px-2 py-1 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
+            </div>
+          </section>
+
+          {/* データ管理 */}
+          <section>
+            <h3 className="text-sm font-semibold text-text mb-3">{t('settings.data.title')}</h3>
+            <div className="bg-bg rounded-lg p-4">
+              <p className="text-sm text-text-sub mb-3">{t('settings.data.resetDescription')}</p>
+              <button
+                onClick={async () => {
+                  if (window.confirm(t('settings.data.resetConfirm'))) {
+                    try {
+                      await resetMessages();
+                      alert(t('settings.data.resetSuccess'));
+                      window.location.reload();
+                    } catch (error) {
+                      console.error('Failed to reset messages:', error);
+                      alert(t('settings.data.resetError'));
+                    }
+                  }
+                }}
+                className="px-3 py-1.5 text-sm text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+              >
+                {t('settings.data.resetButton')}
+              </button>
             </div>
           </section>
         </div>

@@ -46,7 +46,9 @@
         "noMessages": "メッセージがありません",
         "noSubject": "(件名なし)",
         "attachment": "添付ファイル",
-        "attachments": "{{count}}件の添付ファイル"
+        "attachments": "{{count}}件の添付ファイル",
+        "expand": "続きを読む",
+        "collapse": "折りたたむ"
     },
     "settings": {
         "title": "設定",
@@ -80,6 +82,14 @@
             "email": "メールアドレス",
             "logout": "ログアウト",
             "logoutConfirm": "ログアウトしますか？"
+        },
+        "data": {
+            "title": "データ管理",
+            "resetDescription": "文字化けを修正するには、メッセージをリセットして再同期してください。",
+            "resetButton": "メッセージをリセット",
+            "resetConfirm": "すべてのメッセージとグループを削除しますか？再同期が必要になります。",
+            "resetSuccess": "リセットが完了しました。アプリを再読み込みします。",
+            "resetError": "リセットに失敗しました。"
         }
     },
     "common": {
