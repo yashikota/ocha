@@ -100,10 +100,9 @@ const MAX_LENGTH = 500;
 const linkifyText = (text: string, isSent: boolean) => {
   const urlRegex = /(https?:\/\/[^\s<>"{}|\\^`\[\]]+)/g;
   const parts = text.split(urlRegex);
-  
+
   return parts.map((part, index) => {
     if (urlRegex.test(part)) {
-      // URLリセット
       urlRegex.lastIndex = 0;
       return (
         <a
@@ -111,7 +110,7 @@ const linkifyText = (text: string, isSent: boolean) => {
           href={part}
           target="_blank"
           rel="noopener noreferrer"
-          className={`underline ${isSent ? 'text-white/90 hover:text-white' : 'text-primary hover:text-primary-hover'}`}
+          className={`underline break-all ${isSent ? 'text-white/90 hover:text-white' : 'text-primary hover:text-primary-hover'}`}
         >
           {part}
         </a>
@@ -159,18 +158,18 @@ export function MessageItem({ message, previousBodies = [], onAttachmentClick }:
   // 送信メッセージ（右側・緑）
   if (isSent) {
     return (
-      <div className="flex justify-end px-4 py-2">
-        <div className="max-w-[75%] flex flex-col items-end">
+      <div className="flex justify-end px-4 py-2 overflow-hidden">
+        <div className="max-w-[75%] min-w-0 flex flex-col items-end">
           <span className="text-xs text-text-sub mb-1">{formatTime(message.receivedAt)}</span>
 
           {message.subject && (
-            <div className="text-xs text-text-sub mb-1 text-right">
+            <div className="text-xs text-text-sub mb-1 text-right truncate w-full">
               {message.subject}
             </div>
           )}
 
-          <div className="bg-primary text-white rounded-2xl rounded-tr-sm px-4 py-2">
-            <p className="text-sm whitespace-pre-wrap break-words">
+          <div className="bg-primary text-white rounded-2xl rounded-tr-sm px-4 py-2 overflow-hidden w-full">
+            <p className="text-sm whitespace-pre-wrap break-all overflow-hidden">
               {linkifyText(displayContent, true)}
             </p>
 
@@ -202,21 +201,21 @@ export function MessageItem({ message, previousBodies = [], onAttachmentClick }:
 
   // 受信メッセージ（左側・グレー）
   return (
-    <div className={`flex justify-start px-4 py-2 ${!message.isRead ? 'bg-selected/20' : ''}`}>
-      <div className="max-w-[75%] flex flex-col items-start">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-xs font-medium text-text">{displayName}</span>
-          <span className="text-xs text-text-sub">{formatTime(message.receivedAt)}</span>
+    <div className={`flex justify-start px-4 py-2 overflow-hidden ${!message.isRead ? 'bg-selected/20' : ''}`}>
+      <div className="max-w-[75%] min-w-0 flex flex-col items-start">
+        <div className="flex items-center gap-2 mb-1 max-w-full">
+          <span className="text-xs font-medium text-text truncate">{displayName}</span>
+          <span className="text-xs text-text-sub flex-shrink-0">{formatTime(message.receivedAt)}</span>
         </div>
 
         {message.subject && (
-          <div className="text-xs text-text-sub mb-1">
+          <div className="text-xs text-text-sub mb-1 truncate w-full">
             {message.subject}
           </div>
         )}
 
-        <div className="bg-gray-100 text-text rounded-2xl rounded-tl-sm px-4 py-2">
-          <p className="text-sm whitespace-pre-wrap break-words">
+        <div className="bg-gray-100 text-text rounded-2xl rounded-tl-sm px-4 py-2 overflow-hidden w-full">
+          <p className="text-sm whitespace-pre-wrap break-all overflow-hidden">
             {linkifyText(displayContent, false)}
           </p>
 
