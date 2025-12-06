@@ -36,24 +36,29 @@ const formatTime = (dateString: string): string => {
 // 引用・署名の開始位置を検出
 const findFooterStart = (text: string): number => {
   const lines = text.split('\n');
-
+  
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-
+    
     // 署名パターン
-    if (/^--\s*$/.test(line) || /^_{3,}/.test(line)) {
+    if (/^--\s*$/.test(line)) {
       return lines.slice(0, i).join('\n').length;
     }
+    // 区切り線パターン（3文字以上の連続）
+    if (/^[_\-=]{3,}\s*$/.test(line)) {
+      return lines.slice(0, i).join('\n').length;
+    }
+    // モバイル署名
     if (/^Sent from my /i.test(line) || /^iPhoneから送信/.test(line)) {
       return lines.slice(0, i).join('\n').length;
     }
-
+    
     // 引用パターン: > で始まる行
     if (line.startsWith('>')) {
       return lines.slice(0, i).join('\n').length;
     }
   }
-
+  
   return -1;
 };
 
