@@ -60,10 +60,14 @@ export function useAuth() {
     setAuthState('needs_config');
   }, [setAccount, setOAuthConfig, setAuthState]);
 
-  // 初回マウント時に認証状態を確認
+  // 初回マウント時のみ認証状態を確認（依存配列を空にして1回だけ実行）
   useEffect(() => {
-    checkStatus();
-  }, [checkStatus]);
+    // authStateがまだ初期状態の場合のみチェック
+    if (authState === 'loading') {
+      checkStatus();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return {
     authState,

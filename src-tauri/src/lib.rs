@@ -66,7 +66,8 @@ pub fn run() {
 
             info!("Tray icon initialized");
 
-            // DevToolsを開く（デバッグ用）
+            // DevToolsを開く（開発時のみ）
+            #[cfg(debug_assertions)]
             if let Some(window) = app.get_webview_window("main") {
                 window.open_devtools();
                 info!("DevTools opened");
