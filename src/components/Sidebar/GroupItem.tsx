@@ -1,5 +1,4 @@
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { useTranslation } from 'react-i18next';
 import { UnreadBadge } from './UnreadBadge';
 import type { Group } from '../../types';
@@ -10,7 +9,6 @@ interface GroupItemProps {
   unreadCount: number;
   onClick: () => void;
   isOverlay?: boolean;
-  isOver?: boolean;
 }
 
 export function GroupItem({
@@ -19,26 +17,23 @@ export function GroupItem({
   unreadCount,
   onClick,
   isOverlay = false,
-  isOver = false,
 }: GroupItemProps) {
   const { t } = useTranslation();
 
   const {
     attributes,
     listeners,
-    setNodeRef,
-    transform,
-    transition,
+    setNodeRef: setDraggableRef,
     isDragging,
-  } = useSortable({
+  } = useDraggable({
     id: group.id,
     data: { group },
   });
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
+  const { setNodeRef: setDroppableRef, isOver } = useDroppable({
+    id: group.id,
+    data: { group },
+  });
 
   // ドラッグ中のオーバーレイ表示
   if (isOverlay) {
@@ -57,25 +52,32 @@ export function GroupItem({
     );
   }
 
+  // 両方のrefを組み合わせる
+  const setRefs = (node: HTMLDivElement | null) => {
+    setDraggableRef(node);
+    setDroppableRef(node);
+  };
+
+  const showDropTarget = isOver && !isDragging;
+
   return (
     <div
-      ref={setNodeRef}
-      style={style}
+      ref={setRefs}
       {...attributes}
       {...listeners}
       onClick={onClick}
       className={`
         relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg
         cursor-grab active:cursor-grabbing select-none
-        transition-all duration-200 ease-out
+        transition-colors duration-150
         ${isDragging ? 'opacity-40 bg-gray-100' : ''}
-        ${isOver && !isDragging ? 'bg-green-100 ring-2 ring-green-500' : ''}
-        ${isSelected && !isDragging && !isOver ? 'bg-selected' : ''}
-        ${!isSelected && !isDragging && !isOver ? 'hover:bg-hover' : ''}
+        ${showDropTarget ? 'bg-green-100 ring-2 ring-green-500' : ''}
+        ${isSelected && !isDragging && !showDropTarget ? 'bg-selected' : ''}
+        ${!isSelected && !isDragging && !showDropTarget ? 'hover:bg-hover' : ''}
       `}
     >
       {/* ドロップターゲット表示 */}
-      {isOver && !isDragging && (
+      {showDropTarget && (
         <div className="absolute inset-0 flex items-center justify-center rounded-lg pointer-events-none z-10 bg-green-500/10">
           <div className="flex items-center gap-2 text-green-600 font-bold text-sm bg-white px-3 py-1.5 rounded-full shadow-lg">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -90,16 +92,16 @@ export function GroupItem({
       <img
         src="./icon.png"
         alt=""
-        className={`w-7 h-7 flex-shrink-0 transition-opacity ${isOver && !isDragging ? 'opacity-40' : ''}`}
+        className={`w-7 h-7 flex-shrink-0 transition-opacity ${showDropTarget ? 'opacity-40' : ''}`}
       />
 
-      <div className={`flex-1 min-w-0 transition-opacity ${isOver && !isDragging ? 'opacity-40' : ''}`}>
+      <div className={`flex-1 min-w-0 transition-opacity ${showDropTarget ? 'opacity-40' : ''}`}>
         <div className={`truncate text-sm ${unreadCount > 0 ? 'font-semibold text-text' : 'text-text'}`}>
           {group.name}
         </div>
       </div>
 
-      <div className={`flex items-center gap-2 transition-opacity ${isOver && !isDragging ? 'opacity-40' : ''}`}>
+      <div className={`flex items-center gap-2 transition-opacity ${showDropTarget ? 'opacity-40' : ''}`}>
         {group.isPinned && (
           <svg className="w-4 h-4 text-primary" fill="currentColor" viewBox="0 0 24 24">
             <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />

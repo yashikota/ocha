@@ -4,18 +4,12 @@ import { useAtom } from 'jotai';
 import {
   DndContext,
   DragOverlay,
-  closestCenter,
   PointerSensor,
   useSensor,
   useSensors,
   DragStartEvent,
   DragEndEvent,
-  DragOverEvent,
 } from '@dnd-kit/core';
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
 import { GroupItem } from './GroupItem';
 import { useGroups } from '../../hooks/useGroups';
 import { settingsModalOpenAtom } from '../../atoms/uiAtom';
@@ -41,7 +35,6 @@ export function Sidebar({ onRefresh }: SidebarProps) {
   const [, setGroups] = useAtom(groupsAtom);
 
   const [activeGroup, setActiveGroup] = useState<Group | null>(null);
-  const [overGroupId, setOverGroupId] = useState<number | null>(null);
   const [merging, setMerging] = useState(false);
 
   const sensors = useSensors(
@@ -65,16 +58,10 @@ export function Sidebar({ onRefresh }: SidebarProps) {
     }
   };
 
-  const handleDragOver = (event: DragOverEvent) => {
-    const { over } = event;
-    setOverGroupId(over ? Number(over.id) : null);
-  };
-
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
 
     setActiveGroup(null);
-    setOverGroupId(null);
 
     if (!over || active.id === over.id || merging) return;
 
@@ -107,7 +94,6 @@ export function Sidebar({ onRefresh }: SidebarProps) {
 
   const handleDragCancel = () => {
     setActiveGroup(null);
-    setOverGroupId(null);
   };
 
   return (
@@ -164,29 +150,21 @@ export function Sidebar({ onRefresh }: SidebarProps) {
         ) : (
           <DndContext
             sensors={sensors}
-            collisionDetection={closestCenter}
             onDragStart={handleDragStart}
-            onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
             onDragCancel={handleDragCancel}
           >
-            <SortableContext
-              items={groups.map(g => g.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              <nav className="space-y-1">
-                {groups.map((group) => (
-                  <GroupItem
-                    key={group.id}
-                    group={group}
-                    isSelected={selectedGroupId === group.id}
-                    unreadCount={unreadCounts[group.id] || 0}
-                    onClick={() => selectGroup(group.id)}
-                    isOver={overGroupId === group.id && activeGroup?.id !== group.id}
-                  />
-                ))}
-              </nav>
-            </SortableContext>
+            <nav className="space-y-1">
+              {groups.map((group) => (
+                <GroupItem
+                  key={group.id}
+                  group={group}
+                  isSelected={selectedGroupId === group.id}
+                  unreadCount={unreadCounts[group.id] || 0}
+                  onClick={() => selectGroup(group.id)}
+                />
+              ))}
+            </nav>
 
             <DragOverlay dropAnimation={{
               duration: 200,
