@@ -58,18 +58,18 @@ jobs:
         run: |
           VERSION=${GITHUB_REF_NAME#v}
           echo "Syncing version to $VERSION"
-          
+
           # macOSはgsed、それ以外はsed
           if command -v gsed &> /dev/null; then
             SED=gsed
           else
             SED=sed
           fi
-          
+
           $SED -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" package.json
           $SED -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" src-tauri/tauri.conf.json
           $SED -i "0,/^version = \"[^\"]*\"/s//version = \"$VERSION\"/" src-tauri/Cargo.toml
-          
+
           echo "Version synced to $VERSION"
 
       - name: Build and release
