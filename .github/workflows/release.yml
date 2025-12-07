@@ -52,10 +52,17 @@ jobs:
       - name: Sync version from git tag
         shell: bash
         run: |
-          # タグからバージョンを取得して .version に書き込み、各ファイルに同期
           VERSION=${GITHUB_REF_NAME#v}
-          echo "$VERSION" > .version
-          node scripts/sync-version.mjs
+          echo "Syncing version to $VERSION"
+          
+          # package.json
+          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" package.json
+          
+          # tauri.conf.json
+          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" src-tauri/tauri.conf.json
+          
+          # Cargo.toml (package version only)
+          sed -i "0,/^version = \"[^\"]*\"/s//version = \"$VERSION\"/" src-tauri/Cargo.toml
 
       - name: Build and release
         uses: tauri-apps/tauri-action@v0.6.0

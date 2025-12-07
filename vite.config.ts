@@ -6,8 +6,8 @@ import { readFileSync } from "fs";
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
 
-// .version ファイルからバージョンを読み取る
-const version = readFileSync("./.version", "utf-8").trim();
+// package.json からバージョンを読み取る
+const { version } = JSON.parse(readFileSync("./package.json", "utf-8"));
 
 // https://vite.dev/config/
 export default defineConfig(async () => ({
