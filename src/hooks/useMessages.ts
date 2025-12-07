@@ -60,6 +60,18 @@ export function useMessages() {
     await tauri.stopIdleWatch();
   }, []);
 
+  // 添付ファイルのlocalPathを更新
+  const updateAttachmentPath = useCallback((attachmentId: number, localPath: string) => {
+    setMessages((prev) =>
+      prev.map((m) => ({
+        ...m,
+        attachments: m.attachments.map((a) =>
+          a.id === attachmentId ? { ...a, localPath } : a
+        ),
+      }))
+    );
+  }, [setMessages]);
+
   // 新着メールイベントをリッスン
   useEffect(() => {
     const unlisten = listen<number>('new-messages', async (_event) => {
@@ -91,5 +103,6 @@ export function useMessages() {
     markAsRead,
     startWatching,
     stopWatching,
+    updateAttachmentPath,
   };
 }

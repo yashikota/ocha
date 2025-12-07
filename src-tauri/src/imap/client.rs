@@ -110,3 +110,26 @@ pub struct RawMessage {
     pub uid: u32,
     pub body: Vec<u8>,
 }
+
+/// 特定UIDのメッセージを取得
+pub fn fetch_message_by_uid(
+    session: &mut ImapSession,
+    uid: u32,
+) -> Result<Option<RawMessage>> {
+    let messages = session.uid_fetch(uid.to_string(), "(UID BODY[])")?;
+
+    for msg in messages.iter() {
+        if let Some(msg_uid) = msg.uid {
+            if msg_uid == uid {
+                if let Some(body) = msg.body() {
+                    return Ok(Some(RawMessage {
+                        uid: msg_uid,
+                        body: body.to_vec(),
+                    }));
+                }
+            }
+        }
+    }
+
+    Ok(None)
+}

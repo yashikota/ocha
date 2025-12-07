@@ -5,12 +5,11 @@ import { ChatHeader } from './ChatHeader';
 import { MessageList } from './MessageList';
 import { useMessages } from '../../hooks/useMessages';
 import { selectedGroupAtom } from '../../atoms/groupsAtom';
-import { openAttachment } from '../../hooks/useTauri';
 
 export function ChatView() {
   const { t } = useTranslation();
   const [selectedGroup] = useAtom(selectedGroupAtom);
-  const { messages, loading, syncMessages } = useMessages();
+  const { messages, loading, syncMessages, updateAttachmentPath } = useMessages();
   const [syncing, setSyncing] = useState(false);
 
   const handleSync = async () => {
@@ -24,12 +23,14 @@ export function ChatView() {
     }
   };
 
-  const handleAttachmentClick = async (attachmentId: number) => {
-    try {
-      await openAttachment(attachmentId);
-    } catch (error) {
-      console.error('Failed to open attachment:', error);
-    }
+  const handleOpenFile = (localPath: string) => {
+    // ファイルはTauri側で開かれるので、ここでは何もしなくてOK
+    console.log('Opening file:', localPath);
+  };
+
+  const handleAttachmentDownloaded = (attachmentId: number, localPath: string) => {
+    // 添付ファイルのlocalPathを更新
+    updateAttachmentPath(attachmentId, localPath);
   };
 
   if (!selectedGroup) {
@@ -49,7 +50,8 @@ export function ChatView() {
       <MessageList
         messages={messages}
         loading={loading}
-        onAttachmentClick={handleAttachmentClick}
+        onOpenFile={handleOpenFile}
+        onAttachmentDownloaded={handleAttachmentDownloaded}
       />
     </main>
   );

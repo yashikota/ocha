@@ -6,10 +6,11 @@ import type { Message } from '../../types';
 interface MessageListProps {
   messages: Message[];
   loading: boolean;
-  onAttachmentClick?: (attachmentId: number) => void;
+  onOpenFile?: (localPath: string) => void;
+  onAttachmentDownloaded?: (attachmentId: number, localPath: string) => void;
 }
 
-export function MessageList({ messages, loading, onAttachmentClick }: MessageListProps) {
+export function MessageList({ messages, loading, onOpenFile, onAttachmentDownloaded }: MessageListProps) {
   const { t } = useTranslation();
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -48,7 +49,8 @@ export function MessageList({ messages, loading, onAttachmentClick }: MessageLis
         <MessageItem
           key={message.id}
           message={message}
-          onAttachmentClick={onAttachmentClick}
+          onOpenFile={onOpenFile}
+          onAttachmentDownloaded={onAttachmentDownloaded}
         />
       ))}
     </div>

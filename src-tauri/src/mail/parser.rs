@@ -23,6 +23,7 @@ pub struct ParsedAttachment {
     pub filename: String,
     pub mime_type: String,
     pub size: usize,
+    pub data: Option<Vec<u8>>,
 }
 
 /// 生メールをパース（mailparseで全部やる）
@@ -67,7 +68,7 @@ pub fn parse_email(raw: &RawMessage) -> Result<ParsedEmail> {
 /// アドレスをパース: "Name <email>" または "email"
 fn parse_address(addr: &str) -> (Option<String>, String) {
     let addr = addr.trim();
-    
+
     if let Some(start) = addr.find('<') {
         if let Some(end) = addr.find('>') {
             let email = addr[start + 1..end].trim().to_string();
@@ -76,7 +77,7 @@ fn parse_address(addr: &str) -> (Option<String>, String) {
             return (name, email);
         }
     }
-    
+
     (None, addr.to_string())
 }
 
@@ -158,6 +159,7 @@ fn extract_attachments_recursive(mail: &ParsedMail, attachments: &mut Vec<Parsed
                 filename,
                 mime_type: content_type.to_string(),
                 size: data.len(),
+                data: None, // デフォルトではデータを含めない
             });
         }
     }
@@ -179,6 +181,50 @@ fn extract_filename_param(disposition: &str) -> Option<String> {
         return value.map(|s| s.to_string());
     }
     None
+}
+
+/// 生メールから添付ファイルをデータ付きで抽出
+pub fn extract_attachments_with_data(raw_body: &[u8]) -> Result<Vec<ParsedAttachment>> {
+    let parsed = parse_mail(raw_body)?;
+    let mut attachments = Vec::new();
+    extract_attachments_with_data_recursive(&parsed, &mut attachments);
+    Ok(attachments)
+}
+
+fn extract_attachments_with_data_recursive(mail: &ParsedMail, attachments: &mut Vec<ParsedAttachment>) {
+    let content_type = mail.ctype.mimetype.as_str();
+
+    let is_attachment = mail
+        .headers
+        .get_first_value("Content-Disposition")
+        .map(|d| d.to_lowercase().starts_with("attachment"))
+        .unwrap_or(false);
+
+    let is_inline_attachment = !content_type.starts_with("text/")
+        && !content_type.starts_with("multipart/")
+        && mail.ctype.params.contains_key("name");
+
+    if is_attachment || is_inline_attachment {
+        let filename = mail.ctype.params.get("name").cloned()
+            .or_else(|| {
+                mail.headers.get_first_value("Content-Disposition")
+                    .and_then(|d| extract_filename_param(&d))
+            })
+            .unwrap_or_else(|| "unknown".to_string());
+
+        if let Ok(data) = mail.get_body_raw() {
+            attachments.push(ParsedAttachment {
+                filename,
+                mime_type: content_type.to_string(),
+                size: data.len(),
+                data: Some(data),
+            });
+        }
+    }
+
+    for subpart in &mail.subparts {
+        extract_attachments_with_data_recursive(subpart, attachments);
+    }
 }
 
 /// 日付をパース

@@ -51,7 +51,12 @@
         "attachment": "Attachment",
         "attachments": "{{count}} attachments",
         "expand": "Read more",
-        "collapse": "Collapse"
+        "collapse": "Collapse",
+        "downloadFile": "Click to download",
+        "openFile": "Click to open",
+        "downloaded": "Downloaded",
+        "downloading": "Downloading...",
+        "downloadError": "Download failed"
     },
     "settings": {
         "title": "Settings",

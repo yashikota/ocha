@@ -5,7 +5,8 @@ import type { Message } from '../../types';
 
 interface MessageItemProps {
   message: Message;
-  onAttachmentClick?: (attachmentId: number) => void;
+  onOpenFile?: (localPath: string) => void;
+  onAttachmentDownloaded?: (attachmentId: number, localPath: string) => void;
 }
 
 const formatTime = (dateString: string): string => {
@@ -88,7 +89,7 @@ const linkifyText = (text: string, isSent: boolean) => {
   });
 };
 
-export function MessageItem({ message, onAttachmentClick }: MessageItemProps) {
+export function MessageItem({ message, onOpenFile, onAttachmentDownloaded }: MessageItemProps) {
   const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);
   const isSent = message.isSent;
@@ -144,7 +145,8 @@ export function MessageItem({ message, onAttachmentClick }: MessageItemProps) {
                 <AttachmentCard
                   key={attachment.id}
                   attachment={attachment}
-                  onClick={() => onAttachmentClick?.(attachment.id)}
+                  onOpen={onOpenFile}
+                  onDownloaded={onAttachmentDownloaded}
                 />
               ))}
             </div>
@@ -195,7 +197,8 @@ export function MessageItem({ message, onAttachmentClick }: MessageItemProps) {
               <AttachmentCard
                 key={attachment.id}
                 attachment={attachment}
-                onClick={() => onAttachmentClick?.(attachment.id)}
+                onOpen={onOpenFile}
+                onDownloaded={onAttachmentDownloaded}
               />
             ))}
           </div>

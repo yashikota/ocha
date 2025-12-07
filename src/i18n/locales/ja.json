@@ -51,7 +51,12 @@
         "attachment": "添付ファイル",
         "attachments": "{{count}}件の添付ファイル",
         "expand": "続きを読む",
-        "collapse": "折りたたむ"
+        "collapse": "折りたたむ",
+        "downloadFile": "クリックしてダウンロード",
+        "openFile": "クリックして開く",
+        "downloaded": "ダウンロード済み",
+        "downloading": "ダウンロード中...",
+        "downloadError": "ダウンロード失敗"
     },
     "settings": {
         "title": "設定",

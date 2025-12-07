@@ -448,6 +448,20 @@ impl Message {
         Ok(conn.last_insert_rowid())
     }
 
+    pub fn get(conn: &Connection, id: i64) -> Result<Option<Self>> {
+        let mut stmt = conn.prepare(
+            r#"
+            SELECT id, uid, message_id, group_id, from_email, from_name, to_email,
+                   subject, body_text, body_html, received_at, is_read, is_sent, folder
+            FROM messages
+            WHERE id = ?1
+            "#,
+        )?;
+
+        let message = stmt.query_row(params![id], Self::from_row).optional()?;
+        Ok(message)
+    }
+
     pub fn mark_as_read(conn: &Connection, id: i64) -> Result<()> {
         conn.execute("UPDATE messages SET is_read = 1 WHERE id = ?1", params![id])?;
         Ok(())
@@ -532,6 +546,23 @@ impl Attachment {
             params![message_id, filename, mime_type, size],
         )?;
         Ok(conn.last_insert_rowid())
+    }
+
+    pub fn update_local_path(conn: &Connection, id: i64, local_path: &str) -> Result<()> {
+        conn.execute(
+            "UPDATE attachments SET local_path = ?1 WHERE id = ?2",
+            params![local_path, id],
+        )?;
+        Ok(())
+    }
+
+    pub fn get(conn: &Connection, id: i64) -> Result<Option<Self>> {
+        let mut stmt = conn.prepare(
+            "SELECT id, message_id, filename, mime_type, size, local_path FROM attachments WHERE id = ?1",
+        )?;
+
+        let attachment = stmt.query_row(params![id], Self::from_row).optional()?;
+        Ok(attachment)
     }
 }
 
