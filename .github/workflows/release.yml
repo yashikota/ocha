@@ -54,13 +54,13 @@ jobs:
         run: |
           VERSION=${GITHUB_REF_NAME#v}
           echo "Syncing version to $VERSION"
-          
+
           # package.json
           sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" package.json
-          
+
           # tauri.conf.json
           sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" src-tauri/tauri.conf.json
-          
+
           # Cargo.toml (package version only)
           sed -i "0,/^version = \"[^\"]*\"/s//version = \"$VERSION\"/" src-tauri/Cargo.toml
 
