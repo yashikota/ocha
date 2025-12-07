@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAtom } from 'jotai';
+import { getVersion } from '@tauri-apps/api/app';
 import {
   DndContext,
   DragOverlay,
@@ -36,6 +37,9 @@ export function Sidebar({ onRefresh }: SidebarProps) {
 
   const [activeGroup, setActiveGroup] = useState<Group | null>(null);
   const [merging, setMerging] = useState(false);
+  const [version, setVersion] = useState<string>('');
+
+  const isDev = import.meta.env.DEV;
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -49,6 +53,10 @@ export function Sidebar({ onRefresh }: SidebarProps) {
     fetchGroups();
     fetchUnreadCounts();
   }, [fetchGroups, fetchUnreadCounts]);
+
+  useEffect(() => {
+    getVersion().then(setVersion).catch(console.error);
+  }, []);
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
@@ -110,7 +118,17 @@ export function Sidebar({ onRefresh }: SidebarProps) {
       <div className="p-4 flex items-center justify-between border-b border-border">
         <div className="flex items-center gap-2">
           <span className="text-xl">🍵</span>
-          <h1 className="font-bold text-text">{t('app.name')}</h1>
+          <div className="flex items-center gap-1.5">
+            <h1 className="font-bold text-text">{t('app.name')}</h1>
+            {version && (
+              <span className="text-xs text-text-sub">v{version}</span>
+            )}
+            {isDev && (
+              <span className="px-1.5 py-0.5 text-[10px] font-bold bg-amber-500 text-white rounded">
+                DEV
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-1">
           {onRefresh && (
