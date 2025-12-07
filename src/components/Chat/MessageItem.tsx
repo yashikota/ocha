@@ -97,6 +97,8 @@ export function MessageItem({ message, onAttachmentClick }: MessageItemProps) {
     ? (message.toEmail || '宛先不明')
     : (message.fromName || message.fromEmail);
 
+  const displayEmail = !isSent && message.fromName ? message.fromEmail : null;
+
   const fullBody = (message.bodyText || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   const footerStart = findFooterStart(fullBody);
   const hasFooter = footerStart !== -1 && footerStart > 0;
@@ -156,9 +158,14 @@ export function MessageItem({ message, onAttachmentClick }: MessageItemProps) {
   return (
     <div className={`flex justify-start px-2 py-2 overflow-hidden ${!message.isRead ? 'bg-selected/20' : ''}`}>
       <div className="max-w-[85%] min-w-0 flex flex-col items-start">
-        <div className="flex items-center gap-2 mb-1 max-w-full">
-          <span className="text-xs font-medium text-text truncate">{displayName}</span>
-          <span className="text-xs text-text-sub flex-shrink-0">{formatTime(message.receivedAt)}</span>
+        <div className="flex flex-col mb-1 max-w-full">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-text truncate">{displayName}</span>
+            <span className="text-xs text-text-sub flex-shrink-0">{formatTime(message.receivedAt)}</span>
+          </div>
+          {displayEmail && (
+            <span className="text-xs text-text-sub truncate">&lt;{displayEmail}&gt;</span>
+          )}
         </div>
 
         {message.subject && (
