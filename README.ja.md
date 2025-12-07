@@ -33,10 +33,10 @@ ochaは、Gmailをチャットアプリのように使えるデスクトップ�
 bun install
 
 # 開発サーバーの起動
-bun run tauri dev
+bun tauri dev
 
 # ビルド
-bun run tauri build
+bun tauri build
 ```
 
 ## 技術スタック

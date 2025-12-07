@@ -33,10 +33,10 @@ Download the latest version from [Releases](https://github.com/yashikota/ocha/re
 bun install
 
 # Start development server
-bun run tauri dev
+bun tauri dev
 
 # Build
-bun run tauri build
+bun tauri build
 ```
 
 ## Tech Stack
