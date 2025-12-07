@@ -23,11 +23,6 @@ export function ChatView() {
     }
   };
 
-  const handleOpenFile = (localPath: string) => {
-    // ファイルはTauri側で開かれるので、ここでは何もしなくてOK
-    console.log('Opening file:', localPath);
-  };
-
   const handleAttachmentDownloaded = (attachmentId: number, localPath: string) => {
     // 添付ファイルのlocalPathを更新
     updateAttachmentPath(attachmentId, localPath);
@@ -50,7 +45,6 @@ export function ChatView() {
       <MessageList
         messages={messages}
         loading={loading}
-        onOpenFile={handleOpenFile}
         onAttachmentDownloaded={handleAttachmentDownloaded}
       />
     </main>

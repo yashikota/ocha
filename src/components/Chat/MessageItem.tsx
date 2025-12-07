@@ -5,7 +5,6 @@ import type { Message } from '../../types';
 
 interface MessageItemProps {
   message: Message;
-  onOpenFile?: (localPath: string) => void;
   onAttachmentDownloaded?: (attachmentId: number, localPath: string) => void;
 }
 
@@ -89,7 +88,7 @@ const linkifyText = (text: string, isSent: boolean) => {
   });
 };
 
-export function MessageItem({ message, onOpenFile, onAttachmentDownloaded }: MessageItemProps) {
+export function MessageItem({ message, onAttachmentDownloaded }: MessageItemProps) {
   const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);
   const isSent = message.isSent;
@@ -145,7 +144,6 @@ export function MessageItem({ message, onOpenFile, onAttachmentDownloaded }: Mes
                 <AttachmentCard
                   key={attachment.id}
                   attachment={attachment}
-                  onOpen={onOpenFile}
                   onDownloaded={onAttachmentDownloaded}
                 />
               ))}
@@ -197,7 +195,6 @@ export function MessageItem({ message, onOpenFile, onAttachmentDownloaded }: Mes
               <AttachmentCard
                 key={attachment.id}
                 attachment={attachment}
-                onOpen={onOpenFile}
                 onDownloaded={onAttachmentDownloaded}
               />
             ))}

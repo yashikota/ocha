@@ -5,7 +5,6 @@ import { downloadAttachment, openAttachment } from '../../hooks/useTauri';
 
 interface AttachmentCardProps {
   attachment: Attachment;
-  onOpen?: (localPath: string) => void;
   onDownloaded?: (attachmentId: number, localPath: string) => void;
 }
 
@@ -90,7 +89,7 @@ function CheckIcon() {
   );
 }
 
-export function AttachmentCard({ attachment, onOpen, onDownloaded }: AttachmentCardProps) {
+export function AttachmentCard({ attachment, onDownloaded }: AttachmentCardProps) {
   const { t } = useTranslation();
   const [isDownloading, setIsDownloading] = useState(false);
   const [localPath, setLocalPath] = useState(attachment.localPath);
