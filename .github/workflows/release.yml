@@ -49,10 +49,12 @@ jobs:
       - name: Install frontend dependencies
         run: bun install
 
-      - name: Sync version from .version file
+      - name: Sync version from git tag
         shell: bash
         run: |
-          # .version ファイルからバージョンを読み取って同期
+          # タグからバージョンを取得して .version に書き込み、各ファイルに同期
+          VERSION=${GITHUB_REF_NAME#v}
+          echo "$VERSION" > .version
           node scripts/sync-version.mjs
 
       - name: Build and release
