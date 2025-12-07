@@ -125,7 +125,7 @@ export function SettingsModal() {
           {/* データ管理 */}
           <section>
             <h3 className="text-sm font-semibold text-text mb-3">{t('settings.data.title')}</h3>
-            <div className="bg-bg rounded-lg p-4">
+            <div className="flex justify-end">
               <button
                 onClick={async () => {
                   if (window.confirm(t('settings.data.resetConfirm'))) {
@@ -143,6 +143,13 @@ export function SettingsModal() {
               >
                 {t('settings.data.resetButton')}
               </button>
+            </div>
+          </section>
+
+          {/* バージョン情報 */}
+          <section className="pt-2 border-t border-border">
+            <div className="text-xs text-text-sub text-center">
+              v{__APP_VERSION__}
             </div>
           </section>
         </div>

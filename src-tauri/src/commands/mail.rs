@@ -1,14 +1,15 @@
+use chrono::Utc;
 use log::{info, debug, error};
 use tauri::{AppHandle, Emitter};
 
-use crate::db::{self, models::{Account, Attachment, Group, Message, NewMessage}};
+use crate::db::{self, models::{Account, Attachment, Group, Message, NewMessage, OAuthConfig}};
 use crate::imap::{self, RawMessage};
 use crate::mail::parse_email;
 use crate::notification;
+use crate::oauth;
 
-/// メールを同期（すべてのメールフォルダから）
-#[tauri::command]
-pub async fn sync_messages(app: AppHandle) -> Result<Vec<Message>, String> {
+/// トークンが期限切れかチェックし、必要なら更新して有効なアクセストークンを返す
+async fn get_valid_access_token() -> Result<(String, String), String> {
     let account = db::with_db(|conn| Account::get(conn))
         .map_err(|e| e.to_string())?
         .ok_or("Not authenticated")?;
@@ -18,7 +19,55 @@ pub async fn sync_messages(app: AppHandle) -> Result<Vec<Message>, String> {
         .ok_or("No access token")?
         .clone();
 
-    let my_email = account.email.clone();
+    // トークンの有効期限をチェック
+    let needs_refresh = if let Some(expires_at) = &account.token_expires_at {
+        if let Ok(expires) = chrono::DateTime::parse_from_rfc3339(expires_at) {
+            // 5分のバッファを設けて早めにリフレッシュ
+            expires.with_timezone(&Utc) < Utc::now() + chrono::Duration::minutes(5)
+        } else {
+            true
+        }
+    } else {
+        true
+    };
+
+    if needs_refresh {
+        info!("Access token expired or expiring soon, refreshing...");
+
+        let config = db::with_db(|conn| OAuthConfig::get(conn))
+            .map_err(|e| e.to_string())?
+            .ok_or("OAuth config not found")?;
+
+        let refresh_token = account.refresh_token
+            .as_ref()
+            .ok_or("No refresh token")?;
+
+        let token_result = oauth::refresh_access_token(&config, refresh_token)
+            .await
+            .map_err(|e| format!("Token refresh failed: {}", e))?;
+
+        // 更新されたトークンを保存
+        db::with_db(|conn| {
+            Account::save(
+                conn,
+                &account.email,
+                &token_result.access_token,
+                &token_result.refresh_token,
+                &token_result.expires_at,
+            )
+        }).map_err(|e| e.to_string())?;
+
+        info!("Token refreshed successfully");
+        Ok((token_result.access_token, account.email))
+    } else {
+        Ok((access_token, account.email))
+    }
+}
+
+/// メールを同期（すべてのメールフォルダから）
+#[tauri::command]
+pub async fn sync_messages(app: AppHandle) -> Result<Vec<Message>, String> {
+    let (access_token, my_email) = get_valid_access_token().await?;
 
     info!("Starting mail sync for {}", my_email);
 
@@ -219,27 +268,21 @@ pub fn get_unread_counts() -> Result<Vec<(i64, i64)>, String> {
 
 #[tauri::command]
 pub async fn start_idle_watch(app: AppHandle) -> Result<(), String> {
-    let account = db::with_db(|conn| Account::get(conn))
-        .map_err(|e| e.to_string())?
-        .ok_or("Not authenticated")?;
-
-    let access_token = account.access_token
-        .clone()
-        .ok_or("No access token")?;
+    let (access_token, email) = get_valid_access_token().await?;
 
     // すべてのメールフォルダを使用
-    let all_mail_folder = find_folder(&account.email, &access_token, "All").await
+    let all_mail_folder = find_folder(&email, &access_token, "All").await
         .unwrap_or_else(|| "INBOX".to_string());
 
     let last_uid = db::with_db(|conn| Message::get_latest_uid(conn, &all_mail_folder))
         .map_err(|e| e.to_string())? as u32;
 
-    let my_email = account.email.clone();
+    let my_email = email.clone();
     let app_clone = app.clone();
     let folder = all_mail_folder.clone();
 
     imap::start_idle_watch(
-        account.email.clone(),
+        email,
         access_token,
         last_uid,
         move |raw_messages| {

@@ -1,13 +1,20 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import { readFileSync } from "fs";
 
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
 
+// .version ファイルからバージョンを読み取る
+const version = readFileSync("./.version", "utf-8").trim();
+
 // https://vite.dev/config/
 export default defineConfig(async () => ({
   plugins: [react(), tailwindcss()],
+  define: {
+    __APP_VERSION__: JSON.stringify(version),
+  },
   // Tauri needs relative paths for the production build
   base: './',
 
