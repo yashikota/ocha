@@ -6,7 +6,34 @@ on:
       - 'v*'
 
 jobs:
+  sync-version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+
+      - name: Sync version from git tag
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          echo "Syncing version to $VERSION"
+          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" package.json
+          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" src-tauri/tauri.conf.json
+          sed -i "0,/^version = \"[^\"]*\"/s//version = \"$VERSION\"/" src-tauri/Cargo.toml
+          echo "Version synced to $VERSION"
+
+      - name: Commit version changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml
+          git diff --staged --quiet || git commit -m "chore: bump version to ${GITHUB_REF_NAME#v}"
+          git push origin HEAD:main
+
   release:
+    needs: sync-version
     permissions:
       contents: write
     strategy:
@@ -26,6 +53,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: main
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -48,29 +77,6 @@ jobs:
 
       - name: Install frontend dependencies
         run: bun install
-
-      - name: Install GNU sed (macOS only)
-        if: matrix.platform == 'macos-latest'
-        run: brew install gnu-sed
-
-      - name: Sync version from git tag
-        shell: bash
-        run: |
-          VERSION=${GITHUB_REF_NAME#v}
-          echo "Syncing version to $VERSION"
-
-          # macOSはgsed、それ以外はsed
-          if command -v gsed &> /dev/null; then
-            SED=gsed
-          else
-            SED=sed
-          fi
-
-          $SED -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" package.json
-          $SED -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" src-tauri/tauri.conf.json
-          $SED -i "0,/^version = \"[^\"]*\"/s//version = \"$VERSION\"/" src-tauri/Cargo.toml
-
-          echo "Version synced to $VERSION"
 
       - name: Build and release
         uses: tauri-apps/tauri-action@v0.6.0
