@@ -17,6 +17,7 @@ import { settingsModalOpenAtom } from '../../atoms/uiAtom';
 import { mergeGroups, getGroups } from '../../hooks/useTauri';
 import { groupsAtom } from '../../atoms/groupsAtom';
 import type { Group } from '../../types';
+import { ConfirmDialog } from '../UI';
 
 interface SidebarProps {
   onRefresh?: () => void;
@@ -37,6 +38,7 @@ export function Sidebar({ onRefresh }: SidebarProps) {
 
   const [activeGroup, setActiveGroup] = useState<Group | null>(null);
   const [merging, setMerging] = useState(false);
+  const [mergeTarget, setMergeTarget] = useState<{ source: Group; target: Group } | null>(null);
   const [version, setVersion] = useState<string>('');
 
   const isDev = import.meta.env.DEV;
@@ -78,34 +80,10 @@ export function Sidebar({ onRefresh }: SidebarProps) {
 
     if (!sourceGroup || !targetGroup) return;
 
-    const confirmMessage = t('sidebar.mergeConfirm', {
-      source: sourceGroup.name,
-      target: targetGroup.name,
-    });
+    if (!sourceGroup || !targetGroup) return;
 
-    const confirmed = window.confirm(confirmMessage);
-    if (!confirmed) {
-      return;
-    }
-
-    // 確認後に非同期で統合を実行
-    const doMerge = async () => {
-      setMerging(true);
-      try {
-        await mergeGroups(Number(over.id), Number(active.id));
-        const updatedGroups = await getGroups();
-        setGroups(updatedGroups);
-        await fetchUnreadCounts();
-        selectGroup(Number(over.id));
-      } catch (error) {
-        console.error('Failed to merge groups:', error);
-        alert(t('common.error') + ': ' + error);
-      } finally {
-        setMerging(false);
-      }
-    };
-
-    doMerge();
+    // 確認ダイアログを表示
+    setMergeTarget({ source: sourceGroup, target: targetGroup });
   };
 
   const handleDragCancel = () => {
@@ -201,14 +179,41 @@ export function Sidebar({ onRefresh }: SidebarProps) {
                   group={activeGroup}
                   isSelected={false}
                   unreadCount={unreadCounts[activeGroup.id] || 0}
-                  onClick={() => {}}
+                  onClick={() => { }}
                   isOverlay
                 />
               ) : null}
-            </DragOverlay>
           </DndContext>
         )}
       </div>
+
+      {mergeTarget && (
+        <ConfirmDialog
+          isOpen={true}
+          title={t('sidebar.mergeTitle')}
+          message={t('sidebar.mergeConfirm', {
+            source: mergeTarget.source.name,
+            target: mergeTarget.target.name,
+          })}
+          onConfirm={async () => {
+            const { source, target } = mergeTarget;
+            setMergeTarget(null);
+            setMerging(true);
+            try {
+              await mergeGroups(target.id, source.id);
+              const updatedGroups = await getGroups();
+              setGroups(updatedGroups);
+              await fetchUnreadCounts();
+              selectGroup(target.id);
+            } catch (error) {
+              console.error('Failed to merge groups:', error);
+            } finally {
+              setMerging(false);
+            }
+          }}
+          onCancel={() => setMergeTarget(null)}
+        />
+      )}
     </aside>
   );
 }

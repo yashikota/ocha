@@ -46,7 +46,8 @@
         "search": "検索...",
         "dropToMerge": "ドロップで統合",
         "mergeHere": "ここに統合",
-        "mergeConfirm": "「{{source}}」を「{{target}}」に統合しますか？（グループ編集画面の分割機能で元に戻せます）"
+        "mergeConfirm": "「{{source}}」を「{{target}}」に統合しますか？（グループ編集画面の分割機能で元に戻せます）",
+        "mergeTitle": "グループの統合"
     },
     "chat": {
         "noSelection": "グループを選択してください",
