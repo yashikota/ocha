@@ -96,7 +96,7 @@ export function SearchModal({ isOpen, onClose, groupId, onJumpToMessage }: Searc
                   onClick={() => setQuery('')}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  ✕
+                  ✖️
                 </button>
               )}
             </div>
