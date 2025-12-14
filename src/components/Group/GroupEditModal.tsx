@@ -13,6 +13,15 @@ import {
 } from '../../hooks/useTauri';
 import type { Group, GroupMember } from '../../types';
 
+import { ConfirmDialog } from '../UI';
+
+type ConfirmInfo = {
+  type: 'split' | 'delete' | 'alert';
+  title: string;
+  message: string;
+  isDestructive?: boolean;
+};
+
 export function GroupEditModal() {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useAtom(groupEditorOpenAtom);
@@ -29,6 +38,11 @@ export function GroupEditModal() {
   const [newGroupName, setNewGroupName] = useState('');
   const [saving, setSaving] = useState(false);
   const [splitting, setSplitting] = useState(false);
+
+  // 確認ダイアログの状態
+  const [confirmInfo, setConfirmInfo] = useState<ConfirmInfo | null>(null);
+
+  const closeConfirm = () => setConfirmInfo(null);
 
   const loadData = useCallback(async () => {
     if (!editingGroupId) return;
@@ -57,7 +71,18 @@ export function GroupEditModal() {
       setSelectedEmails(new Set());
       setNewGroupName('');
     }
-  }, [isOpen, editingGroupId, loadData]);
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // ダイアログが開いているときはダイアログ側でハンドリング
+      if (e.key === 'Escape' && isOpen && !confirmInfo) {
+        setIsOpen(false);
+        setEditingGroupId(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, editingGroupId, loadData, confirmInfo]);
 
   const handleClose = () => {
     setIsOpen(false);
@@ -94,21 +119,8 @@ export function GroupEditModal() {
     setSelectedEmails(newSelection);
   };
 
-  const handleSplit = async () => {
-    if (!group || selectedEmails.size === 0 || !newGroupName.trim()) return;
-
-    if (selectedEmails.size === members.length) {
-      alert(t('groupEdit.cannotSplitAll'));
-      return;
-    }
-
-    const confirmMessage = t('groupEdit.splitConfirm', {
-      count: selectedEmails.size,
-      newGroup: newGroupName,
-    });
-
-    if (!window.confirm(confirmMessage)) return;
-
+  const executeSplit = async () => {
+    if (!group) return;
     setSplitting(true);
     try {
       const newGroupId = await splitGroup(group.id, Array.from(selectedEmails), newGroupName);
@@ -120,14 +132,34 @@ export function GroupEditModal() {
       console.error('Failed to split group:', error);
     } finally {
       setSplitting(false);
+      closeConfirm();
     }
   };
 
-  const handleDelete = async () => {
+  const handleSplitClick = () => {
+    if (!group || selectedEmails.size === 0 || !newGroupName.trim()) return;
+
+    if (selectedEmails.size === members.length) {
+      setConfirmInfo({
+        type: 'alert',
+        title: t('common.error'),
+        message: t('groupEdit.cannotSplitAll'),
+      });
+      return;
+    }
+
+    setConfirmInfo({
+      type: 'split',
+      title: t('groupEdit.split'),
+      message: t('groupEdit.splitConfirm', {
+        count: selectedEmails.size,
+        newGroup: newGroupName,
+      }),
+    });
+  };
+
+  const executeDelete = async () => {
     if (!group) return;
-
-    if (!window.confirm(t('groupEdit.deleteConfirm', { name: group.name }))) return;
-
     try {
       await deleteGroup(group.id);
       const updatedGroups = await getGroups();
@@ -136,6 +168,28 @@ export function GroupEditModal() {
       handleClose();
     } catch (error) {
       console.error('Failed to delete group:', error);
+    } finally {
+      closeConfirm();
+    }
+  };
+
+  const handleDeleteClick = () => {
+    if (!group) return;
+    setConfirmInfo({
+      type: 'delete',
+      title: t('groupEdit.deleteButton'),
+      message: t('groupEdit.deleteConfirm', { name: group.name }),
+      isDestructive: true,
+    });
+  };
+
+  const handleConfirmAction = () => {
+    if (confirmInfo?.type === 'split') {
+      executeSplit();
+    } else if (confirmInfo?.type === 'delete') {
+      executeDelete();
+    } else {
+      closeConfirm();
     }
   };
 
@@ -239,7 +293,7 @@ export function GroupEditModal() {
                     className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                   <button
-                    onClick={handleSplit}
+                    onClick={handleSplitClick}
                     disabled={!canSplit || splitting}
                     className="w-full px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50"
                   >
@@ -273,7 +327,7 @@ export function GroupEditModal() {
             <div className="bg-red-50 rounded-lg p-4">
               <p className="text-xs text-red-600 mb-3">{t('groupEdit.deleteWarning')}</p>
               <button
-                onClick={handleDelete}
+                onClick={handleDeleteClick}
                 className="px-4 py-2 text-sm text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
               >
                 {t('groupEdit.deleteButton')}
@@ -299,6 +353,17 @@ export function GroupEditModal() {
           </button>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={!!confirmInfo}
+        title={confirmInfo?.title || ''}
+        message={confirmInfo?.message || ''}
+        confirmLabel={confirmInfo?.type === 'alert' ? 'OK' : t('common.yes')}
+        cancelLabel={confirmInfo?.type === 'alert' ? undefined : t('common.no')}
+        isDestructive={confirmInfo?.isDestructive}
+        onConfirm={handleConfirmAction}
+        onCancel={closeConfirm}
+      />
     </div>
   );
 }
