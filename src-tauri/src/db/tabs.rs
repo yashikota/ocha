@@ -1,5 +1,5 @@
 use anyhow::Result;
-use rusqlite::{params, Connection, OptionalExtension, Row};
+use rusqlite::{params, Connection, Row};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
