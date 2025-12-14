@@ -110,9 +110,7 @@ export function SettingsModal() {
               className="p-2 rounded-lg hover:bg-hover transition-colors"
               aria-label={t('common.close')}
             >
-              <svg className="w-5 h-5 text-text-sub" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <span className="text-xl">✖️</span>
             </button>
           </div>
 

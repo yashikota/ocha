@@ -49,9 +49,7 @@ export function GroupItem({
           <div className="font-semibold text-text truncate">{group.name}</div>
         </div>
         {group.isPinned && (
-          <svg className="w-4 h-4 text-primary" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-          </svg>
+          <span className="text-xs">📌</span>
         )}
       </div>
     );
@@ -89,9 +87,7 @@ export function GroupItem({
       {showDropTarget && (
         <div className="absolute inset-0 flex items-center justify-center rounded-lg pointer-events-none z-10 bg-green-500/10">
           <div className="flex items-center gap-2 text-green-600 font-bold text-sm bg-white px-3 py-1.5 rounded-full shadow-lg">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
+            <span className="text-xl">📥</span>
             {t('sidebar.mergeHere')}
           </div>
         </div>
@@ -112,9 +108,7 @@ export function GroupItem({
 
       <div className={`flex items-center gap-2 transition-opacity ${showDropTarget ? 'opacity-40' : ''}`}>
         {group.isPinned && (
-          <svg className="w-4 h-4 text-primary" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-          </svg>
+          <span className="text-xs">📌</span>
         )}
         <UnreadBadge count={unreadCount} />
       </div>
