@@ -40,7 +40,7 @@ export function Sidebar({ onRefresh }: SidebarProps) {
   const [merging, setMerging] = useState(false);
   const [mergeTarget, setMergeTarget] = useState<{ source: Group; target: Group } | null>(null);
   const [version, setVersion] = useState<string>('');
-  const [showHidden, setShowHidden] = useState(false);
+  const [activeTab, setActiveTab] = useState<'main' | 'hidden'>('main');
 
   const isDev = import.meta.env.DEV;
 
@@ -138,9 +138,26 @@ export function Sidebar({ onRefresh }: SidebarProps) {
       {/* グループセクション */}
       <div className="flex-1 overflow-y-auto p-2">
         <div className="px-2 py-1 flex items-center justify-between">
-          <span className="text-xs font-semibold text-text-sub uppercase tracking-wide">
-            {t('sidebar.groups')}
-          </span>
+          <div className="flex bg-bg-sidebar-input rounded-lg p-0.5 gap-0.5">
+            <button
+              onClick={() => setActiveTab('main')}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${activeTab === 'main'
+                ? 'bg-bg text-text shadow-sm'
+                : 'text-text-sub hover:text-text'
+                }`}
+            >
+              {t('sidebar.tabMain')}
+            </button>
+            <button
+              onClick={() => setActiveTab('hidden')}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${activeTab === 'hidden'
+                ? 'bg-bg text-text shadow-sm'
+                : 'text-text-sub hover:text-text'
+                }`}
+            >
+              {t('sidebar.tabHidden')}
+            </button>
+          </div>
           {activeGroup && (
             <span className="text-xs text-primary font-medium animate-pulse">
               {t('sidebar.dropToMerge')}
@@ -152,7 +169,9 @@ export function Sidebar({ onRefresh }: SidebarProps) {
 
         {/* グループリスト */}
         {(() => {
-          const visibleGroups = groups.filter(g => showHidden || !g.isHidden);
+          const visibleGroups = groups.filter(g =>
+            activeTab === 'main' ? !g.isHidden : g.isHidden
+          );
 
           if (visibleGroups.length === 0) {
             return (
@@ -200,25 +219,7 @@ export function Sidebar({ onRefresh }: SidebarProps) {
         })()}
       </div>
 
-      {/* フッター: 非表示グループ切り替え */}
-      <div className="p-2 border-t border-border">
-        <button
-          onClick={() => setShowHidden(!showHidden)}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-text-sub hover:bg-hover rounded-lg transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            {showHidden ? (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-            ) : (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            )}
-            {!showHidden && (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            )}
-          </svg>
-          {showHidden ? t('sidebar.hideHiddenGroups') : t('sidebar.showHiddenGroups')}
-        </button>
-      </div>
+
 
       {
         mergeTarget && (

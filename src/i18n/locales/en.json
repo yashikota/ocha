@@ -43,7 +43,13 @@
         "dropToMerge": "Drop to merge",
         "mergeHere": "Merge here",
         "mergeConfirm": "Merge \"{{source}}\" into \"{{target}}\"? (You can undo this using the split feature in group settings)",
-        "mergeTitle": "Merge Groups"
+        "mergeTitle": "Merge Groups",
+        "tabMain": "Main",
+        "tabHidden": "Hidden",
+        "hideGroup": "Hide Group",
+        "restoreGroup": "Restore Group",
+        "showHiddenGroups": "Show Hidden Groups",
+        "hideHiddenGroups": "Hide Hidden Groups"
     },
     "chat": {
         "noSelection": "Select a group",

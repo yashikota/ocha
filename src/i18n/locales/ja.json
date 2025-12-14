@@ -41,6 +41,8 @@
     },
     "sidebar": {
         "groups": "グループ",
+        "tabMain": "メイン",
+        "tabHidden": "非表示",
         "newGroup": "新規グループ",
         "noGroups": "グループがありません",
         "search": "検索...",
