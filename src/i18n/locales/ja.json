@@ -32,7 +32,11 @@
         "errors": {
             "configRequired": "Client IDとClient Secretを入力してください",
             "saveFailed": "設定の保存に失敗しました",
-            "loginFailed": "ログインに失敗しました"
+            "loginFailed": "ログインに失敗しました",
+            "sessionExpired": {
+                "title": "セッションの有効期限切れ",
+                "message": "Googleアカウントの認証が無効になりました。もう一度ログインしてください。"
+            }
         }
     },
     "sidebar": {

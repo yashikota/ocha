@@ -187,6 +187,10 @@ pub async fn refresh_access_token(config: &OAuthConfig, refresh_token: &str) -> 
 
     if !response.status().is_success() {
         let error_text = response.text().await?;
+        // Google returns invalid_grant when the refresh token is revoked or expired
+        if error_text.contains("\"error\": \"invalid_grant\"") {
+             return Err(anyhow!("AUTH_REQUIRED"));
+        }
         return Err(anyhow!("Token refresh failed: {}", error_text));
     }
 

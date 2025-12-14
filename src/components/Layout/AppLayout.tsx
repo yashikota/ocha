@@ -4,15 +4,19 @@ import { Sidebar } from '../Sidebar';
 import { ChatView } from '../Chat';
 import { SettingsModal } from '../Settings';
 import { GroupEditModal } from '../Group';
+import { ConfirmDialog } from '../UI';
 import { useMessages } from '../../hooks/useMessages';
 import { useGroups } from '../../hooks/useGroups';
+import { useAuth } from '../../hooks/useAuth';
 
 export function AppLayout() {
   const { t } = useTranslation();
   const { startWatching, syncMessages, fetchMessages } = useMessages();
   const { fetchGroups, fetchUnreadCounts, selectedGroupId } = useGroups();
+  const { logout } = useAuth();
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [isAuthError, setIsAuthError] = useState(false);
 
   // 全データを同期・リフレッシュ
   const refreshAll = useCallback(async () => {
@@ -31,7 +35,12 @@ export function AppLayout() {
       }
     } catch (error) {
       console.error('Sync failed:', error);
-      setSyncError(String(error));
+      const errorMsg = String(error);
+      if (errorMsg.includes('AUTH_REQUIRED')) {
+        setIsAuthError(true);
+      } else {
+        setSyncError(errorMsg);
+      }
     } finally {
       setIsSyncing(false);
     }
@@ -44,6 +53,11 @@ export function AppLayout() {
     // IMAP監視を開始
     startWatching().catch(console.error);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleAuthErrorConfirm = async () => {
+    setIsAuthError(false);
+    await logout();
+  };
 
   return (
     <div className="h-screen flex bg-bg overflow-hidden">
@@ -77,6 +91,16 @@ export function AppLayout() {
       <ChatView />
       <SettingsModal />
       <GroupEditModal />
+
+      <ConfirmDialog
+        isOpen={isAuthError}
+        title={t('auth.errors.sessionExpired.title')}
+        message={t('auth.errors.sessionExpired.message')}
+        confirmLabel="OK"
+        onConfirm={handleAuthErrorConfirm}
+        onCancel={() => { }} // キャンセル不可（強制ログアウト）
+        isDestructive={false}
+      />
     </div>
   );
 }
