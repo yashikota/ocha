@@ -11,6 +11,8 @@ import { useAuth } from '../../hooks/useAuth';
 
 import { useAtom } from 'jotai';
 import { settingsAtom } from '../../atoms/settingsAtom';
+import { onAction } from '@tauri-apps/plugin-notification';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 
 export function AppLayout() {
   const { t } = useTranslation();
@@ -71,6 +73,32 @@ export function AppLayout() {
 
     return () => clearInterval(intervalId);
   }, [settings.syncIntervalMinutes, isSyncing, refreshAll]);
+
+  // 通知クリックのハンドリング
+  useEffect(() => {
+    let unlisten: Awaited<ReturnType<typeof onAction>> | undefined;
+
+    const setupListener = async () => {
+      unlisten = await onAction((_notification) => {
+        console.log('Notification clicked, restoring window...');
+        const win = getCurrentWindow();
+        win.show();
+        win.setFocus();
+      });
+    };
+
+    setupListener();
+
+    return () => {
+      if (unlisten) {
+        // PluginListenerの型定義と実体の不整合を回避するため、unknown経由でチェック
+        const listener = unlisten as unknown;
+        if (typeof listener === 'function') {
+          (listener as () => void)();
+        }
+      }
+    };
+  }, []);
 
   const handleAuthErrorConfirm = async () => {
     setIsAuthError(false);
