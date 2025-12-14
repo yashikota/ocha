@@ -152,7 +152,6 @@ impl Group {
                 FROM messages
                 GROUP BY group_id
             ) m ON g.id = m.group_id
-            WHERE g.is_hidden = 0
             ORDER BY g.is_pinned DESC, m.latest DESC NULLS LAST, g.created_at DESC
             "#,
         )?;

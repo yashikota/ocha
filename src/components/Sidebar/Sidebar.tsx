@@ -170,7 +170,7 @@ export function Sidebar({ onRefresh }: SidebarProps) {
         {/* グループリスト */}
         {(() => {
           const visibleGroups = groups.filter(g =>
-            activeTab === 'main' ? !g.isHidden : g.isHidden
+            activeTab === 'main' ? !g.isHidden : !!g.isHidden
           );
 
           if (visibleGroups.length === 0) {
