@@ -183,6 +183,7 @@ export function Sidebar({ onRefresh }: SidebarProps) {
                   isOverlay
                 />
               ) : null}
+            </DragOverlay>
           </DndContext>
         )}
       </div>
