@@ -63,6 +63,15 @@
         "moveToMain": "メインに戻す",
         "deleteTabConfirm": "「{{tab}}」を削除しますか？\n含まれるグループは「メイン」に戻ります。"
     },
+    "bookmark": {
+        "title": "ブックマーク",
+        "add": "ブックマークに追加",
+        "remove": "ブックマークを解除",
+        "list": "ブックマーク一覧",
+        "empty": "ブックマークされたメッセージはありません",
+        "jump": "移動",
+        "bookmarked": "ブックマーク済み"
+    },
     "chat": {
         "noSelection": "グループを選択してください",
         "noMessages": "メッセージがありません",

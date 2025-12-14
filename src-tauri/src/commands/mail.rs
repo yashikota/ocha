@@ -268,6 +268,18 @@ pub fn get_unread_counts() -> Result<Vec<(i64, i64)>, String> {
 }
 
 #[tauri::command]
+pub fn toggle_message_bookmark(message_id: i64) -> Result<bool, String> {
+    db::with_db(|conn| Message::toggle_bookmark(conn, message_id))
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn get_bookmarked_messages() -> Result<Vec<Message>, String> {
+    db::with_db(|conn| Message::list_bookmarks(conn))
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub async fn start_idle_watch(app: AppHandle) -> Result<(), String> {
     let (access_token, email) = get_valid_access_token().await?;
 

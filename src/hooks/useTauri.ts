@@ -63,6 +63,14 @@ export async function markGroupAsRead(groupId: number): Promise<void> {
   return invoke('mark_group_as_read', { groupId });
 }
 
+export async function toggleMessageBookmark(messageId: number): Promise<boolean> {
+  return invoke('toggle_message_bookmark', { messageId });
+}
+
+export async function getBookmarkedMessages(): Promise<Message[]> {
+  return invoke('get_bookmarked_messages');
+}
+
 export async function getUnreadCounts(): Promise<[number, number][]> {
   return invoke('get_unread_counts');
 }

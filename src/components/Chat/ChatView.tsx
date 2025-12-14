@@ -9,7 +9,7 @@ import { selectedGroupAtom } from '../../atoms/groupsAtom';
 export function ChatView() {
   const { t } = useTranslation();
   const [selectedGroup] = useAtom(selectedGroupAtom);
-  const { messages, loading, syncMessages, updateAttachmentPath } = useMessages();
+  const { messages, loading, syncMessages, updateAttachmentPath, toggleBookmark } = useMessages();
   const [syncing, setSyncing] = useState(false);
 
   const handleSync = async () => {
@@ -46,6 +46,7 @@ export function ChatView() {
         messages={messages}
         loading={loading}
         onAttachmentDownloaded={handleAttachmentDownloaded}
+        onBookmarkChange={(message) => toggleBookmark(message.id)}
       />
     </main>
   );

@@ -58,7 +58,8 @@ pub fn create_tables(conn: &Connection) -> Result<()> {
             received_at TEXT NOT NULL,
             is_read INTEGER NOT NULL DEFAULT 0,
             is_sent INTEGER NOT NULL DEFAULT 0,
-            folder TEXT NOT NULL DEFAULT 'INBOX'
+            folder TEXT NOT NULL DEFAULT 'INBOX',
+            is_bookmarked INTEGER NOT NULL DEFAULT 0
         );
 
         -- 添付ファイル
@@ -122,6 +123,17 @@ pub fn create_tables(conn: &Connection) -> Result<()> {
 
     if count == 0 {
         conn.execute("ALTER TABLE groups ADD COLUMN tab_id INTEGER REFERENCES tabs(id) ON DELETE SET NULL", [])?;
+    }
+
+    // マイグレーション: is_bookmarkedカラムを追加
+    let count: i32 = conn.query_row(
+        "SELECT COUNT(*) FROM pragma_table_info('messages') WHERE name = 'is_bookmarked'",
+        [],
+        |row| row.get(0),
+    ).unwrap_or(0);
+
+    if count == 0 {
+        conn.execute("ALTER TABLE messages ADD COLUMN is_bookmarked INTEGER NOT NULL DEFAULT 0", [])?;
     }
 
     Ok(())

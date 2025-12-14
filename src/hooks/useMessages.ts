@@ -95,6 +95,20 @@ export function useMessages() {
     }
   }, [selectedGroupId, fetchMessages, setMessages]);
 
+  // ブックマークの切り替え
+  const toggleBookmark = useCallback(async (messageId: number) => {
+    try {
+      await tauri.toggleMessageBookmark(messageId);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === messageId ? { ...m, isBookmarked: !m.isBookmarked } : m
+        )
+      );
+    } catch (error) {
+      console.error('Failed to toggle bookmark:', error);
+    }
+  }, [setMessages]);
+
   return {
     messages,
     loading,
@@ -104,5 +118,6 @@ export function useMessages() {
     startWatching,
     stopWatching,
     updateAttachmentPath,
+    toggleBookmark,
   };
 }

@@ -58,6 +58,7 @@ export interface Message {
   isRead: boolean;
   isSent: boolean;
   folder: string;
+  isBookmarked: boolean;
   attachments: Attachment[];
 }
 

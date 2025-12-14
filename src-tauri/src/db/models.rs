@@ -361,6 +361,8 @@ pub struct Message {
     pub is_sent: bool,
     pub folder: String,
     #[serde(default)]
+    pub is_bookmarked: bool,
+    #[serde(default)]
     pub attachments: Vec<Attachment>,
 }
 
@@ -381,6 +383,7 @@ impl Message {
             is_read: row.get::<_, i32>(11)? != 0,
             is_sent: row.get::<_, i32>(12)? != 0,
             folder: row.get(13)?,
+            is_bookmarked: row.get::<_, i32>(14)? != 0,
             attachments: vec![],
         })
     }
@@ -389,7 +392,7 @@ impl Message {
         let mut stmt = conn.prepare(
             r#"
             SELECT id, uid, message_id, group_id, from_email, from_name, to_email,
-                   subject, body_text, body_html, received_at, is_read, is_sent, folder
+                   subject, body_text, body_html, received_at, is_read, is_sent, folder, is_bookmarked
             FROM messages
             WHERE group_id = ?1
             ORDER BY received_at ASC
@@ -456,7 +459,7 @@ impl Message {
         let mut stmt = conn.prepare(
             r#"
             SELECT id, uid, message_id, group_id, from_email, from_name, to_email,
-                   subject, body_text, body_html, received_at, is_read, is_sent, folder
+                   subject, body_text, body_html, received_at, is_read, is_sent, folder, is_bookmarked
             FROM messages
             WHERE id = ?1
             "#,
@@ -486,6 +489,47 @@ impl Message {
             .collect::<rusqlite::Result<Vec<_>>>()?;
 
         Ok(counts)
+    }
+
+    pub fn toggle_bookmark(conn: &Connection, id: i64) -> Result<bool> {
+        // 現在の状態を取得
+        let current: i32 = conn.query_row(
+            "SELECT is_bookmarked FROM messages WHERE id = ?1",
+            params![id],
+            |row| row.get(0),
+        )?;
+
+        let new_state = if current == 0 { 1 } else { 0 };
+
+        conn.execute(
+            "UPDATE messages SET is_bookmarked = ?1 WHERE id = ?2",
+            params![new_state, id],
+        )?;
+
+        Ok(new_state != 0)
+    }
+
+    pub fn list_bookmarks(conn: &Connection) -> Result<Vec<Self>> {
+        let mut stmt = conn.prepare(
+            r#"
+            SELECT id, uid, message_id, group_id, from_email, from_name, to_email,
+                   subject, body_text, body_html, received_at, is_read, is_sent, folder, is_bookmarked
+            FROM messages
+            WHERE is_bookmarked = 1
+            ORDER BY received_at DESC
+            "#,
+        )?;
+
+        let mut messages = stmt
+            .query_map([], Self::from_row)?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+
+        // 添付ファイルを取得
+        for msg in &mut messages {
+            msg.attachments = Attachment::list_by_message(conn, msg.id)?;
+        }
+
+        Ok(messages)
     }
 }
 

@@ -13,13 +13,14 @@ import {
 } from '@dnd-kit/core';
 import { GroupItem } from './GroupItem';
 import { useGroups } from '../../hooks/useGroups';
-import { settingsModalOpenAtom } from '../../atoms/uiAtom';
+import { settingsModalOpenAtom, targetMessageIdAtom } from '../../atoms/uiAtom';
 import { mergeGroups, getGroups } from '../../hooks/useTauri';
 import { groupsAtom } from '../../atoms/groupsAtom';
 import type { Group } from '../../types';
 import { ConfirmDialog, InputDialog } from '../UI';
 import { ContextMenu } from './ContextMenu';
 import { useDraggableScroll } from '../../hooks/useDraggableScroll';
+import { BookmarkListModal } from '../Chat/BookmarkListModal';
 
 interface SidebarProps {
   onRefresh?: () => void;
@@ -37,6 +38,7 @@ export function Sidebar({ onRefresh }: SidebarProps) {
   } = useGroups();
   const [, setSettingsOpen] = useAtom(settingsModalOpenAtom);
   const [, setGroups] = useAtom(groupsAtom);
+  const [, setTargetMessageId] = useAtom(targetMessageIdAtom);
 
   const [activeGroup, setActiveGroup] = useState<Group | null>(null);
   const [merging, setMerging] = useState(false);
@@ -62,6 +64,8 @@ export function Sidebar({ onRefresh }: SidebarProps) {
     tabId: number;
     tabName: string;
   } | null>(null);
+
+  const [bookmarkModalOpen, setBookmarkModalOpen] = useState(false);
 
   const {
     tabs,
@@ -171,8 +175,19 @@ export function Sidebar({ onRefresh }: SidebarProps) {
         </div>
       </div>
 
-      {/* グループセクション */}
       <div className="flex-1 overflow-y-auto p-2">
+        <div className="px-2 pb-1">
+          <button
+            onClick={() => setBookmarkModalOpen(true)}
+            className="w-full text-left p-2 text-text-sub hover:text-text rounded hover:bg-bg-sidebar-input flex items-center gap-2"
+            aria-label={t('bookmark.list', 'ブックマーク')}
+            title={t('bookmark.list', 'ブックマーク')}
+          >
+            <span className="text-lg">📌</span>
+            <span className="text-sm font-medium">{t('bookmark.title', 'ブックマーク')}</span>
+          </button>
+        </div>
+
         <div className="px-2 py-1 flex items-center gap-1">
           <div
             {...draggableScroll.events}
@@ -395,6 +410,15 @@ export function Sidebar({ onRefresh }: SidebarProps) {
           onCancel={() => setDeleteTabConfirm(null)}
         />
       )}
+
+      <BookmarkListModal
+        isOpen={bookmarkModalOpen}
+        onClose={() => setBookmarkModalOpen(false)}
+        onJumpToMessage={(groupId, messageId) => {
+          setTargetMessageId(messageId);
+          selectGroup(groupId);
+        }}
+      />
     </aside >
   );
 }

@@ -59,6 +59,15 @@
         "moveToMain": "Move to Main",
         "deleteTabConfirm": "Delete \"{{tab}}\"?\nGroups inside will return to Main."
     },
+    "bookmark": {
+        "title": "Bookmarks",
+        "add": "Bookmark",
+        "remove": "Remove Bookmark",
+        "list": "Bookmarks",
+        "empty": "No bookmarked messages",
+        "jump": "Jump to message",
+        "bookmarked": "Bookmarked"
+    },
     "chat": {
         "noSelection": "Select a group",
         "noMessages": "No messages",

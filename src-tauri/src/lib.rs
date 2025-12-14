@@ -143,6 +143,8 @@ pub fn run() {
             commands::get_unread_counts,
             commands::start_idle_watch,
             commands::stop_idle_watch,
+            commands::toggle_message_bookmark,
+            commands::get_bookmarked_messages,
             // Groups
             commands::get_groups,
             commands::get_group,

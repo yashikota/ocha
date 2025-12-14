@@ -18,3 +18,5 @@ export const errorMessageAtom = atom<string | null>(null);
 // 成功メッセージ
 export const successMessageAtom = atom<string | null>(null);
 
+// ジャンプ対象のメッセージID
+export const targetMessageIdAtom = atom<number | null>(null);
