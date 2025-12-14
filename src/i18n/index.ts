@@ -11,6 +11,9 @@ const resources = {
 
 // ブラウザの言語設定を取得
 const getBrowserLanguage = (): string => {
+  const saved = localStorage.getItem('language');
+  if (saved) return saved;
+
   const lang = navigator.language;
   if (lang.startsWith('ja')) return 'ja';
   return 'en';

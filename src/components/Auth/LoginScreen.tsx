@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../hooks/useAuth';
+import i18n from '../../i18n';
 
 export function LoginScreen() {
   const { t } = useTranslation();
@@ -40,8 +41,24 @@ export function LoginScreen() {
     }
   };
 
+  const changeLanguage = (lng: string) => {
+    i18n.changeLanguage(lng);
+    localStorage.setItem('language', lng);
+  };
+
   return (
-    <div className="min-h-screen bg-bg flex items-center justify-center p-4">
+    <div className="min-h-screen bg-bg flex items-center justify-center p-4 relative">
+      <div className="absolute top-4 right-4">
+        <select
+          onChange={(e) => changeLanguage(e.target.value)}
+          value={i18n.language}
+          className="bg-white border border-border rounded-lg px-2 py-1 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary"
+        >
+          <option value="ja">日本語</option>
+          <option value="en">English</option>
+        </select>
+      </div>
+
       <div className="w-full max-w-md">
         {/* ロゴ */}
         <div className="text-center mb-8">
@@ -138,7 +155,7 @@ export function LoginScreen() {
                 ) : (
                   <>
                     <svg className="w-5 h-5" viewBox="0 0 24 24">
-                      <path fill="currentColor" d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z"/>
+                      <path fill="currentColor" d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z" />
                     </svg>
                     <span>{t('auth.login.button')}</span>
                   </>

@@ -70,6 +70,12 @@
             "sound": "Enable notification sound",
             "syncInterval": "Sync interval (minutes)"
         },
+        "system": {
+            "title": "System Settings",
+            "language": "Language",
+            "launchAtLogin": "Launch properly at login",
+            "minimizeToTray": "Minimize to tray when closing window"
+        },
         "groups": {
             "title": "Group Management",
             "name": "Group Name",
@@ -99,7 +105,12 @@
             "resetError": "Failed to reset."
         }
     },
+    "languages": {
+        "ja": "日本語",
+        "en": "English"
+    },
     "common": {
+        "language": "Language",
         "loading": "Loading...",
         "error": "An error occurred",
         "retry": "Retry",

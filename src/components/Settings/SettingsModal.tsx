@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import i18n from '../../i18n';
 import { useAtom } from 'jotai';
 import { settingsModalOpenAtom } from '../../atoms/uiAtom';
 import { settingsAtom } from '../../atoms/settingsAtom';
@@ -177,6 +178,21 @@ export function SettingsModal() {
             <section>
               <h3 className="text-sm font-semibold text-text mb-3">{t('settings.system.title')}</h3>
               <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-text">{t('settings.system.language')}</span>
+                  <select
+                    value={i18n.language}
+                    onChange={(e) => {
+                      i18n.changeLanguage(e.target.value);
+                      localStorage.setItem('language', e.target.value);
+                    }}
+                    className="px-2 py-1 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="ja">日本語</option>
+                    <option value="en">English</option>
+                  </select>
+                </div>
+
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input
                     type="checkbox"
