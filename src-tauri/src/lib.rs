@@ -8,7 +8,8 @@ mod oauth;
 use log::{info, error};
 use tauri::Manager;
 use tauri::menu::{Menu, MenuItem};
-use tauri::tray::TrayIconBuilder;
+use tauri::tray::{MouseButton, TrayIconBuilder, TrayIconEvent};
+use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 use tauri_plugin_log::{Target, TargetKind};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -29,8 +30,14 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_autostart::init(
+            MacosLauncher::LaunchAgent,
+            Some(vec![]),
+        ))
         .setup(|app| {
             info!("ocha starting up...");
+
+
 
             // データディレクトリを取得してDBを初期化
             let app_data_dir = app
@@ -47,20 +54,51 @@ pub fn run() {
 
             info!("Database initialized successfully");
 
+            // 自動起動設定を適用
+            if let Ok(settings) = db::with_db(|conn| db::models::Settings::get(conn)) {
+                if settings.launch_at_login {
+                    let _ = app.autolaunch().enable();
+                    info!("Autolaunch enabled based on settings");
+                } else {
+                    let _ = app.autolaunch().disable();
+                    info!("Autolaunch disabled based on settings");
+                }
+            }
+
             // タスクトレイアイコンを設定
+            let show_item = MenuItem::with_id(app, "show", "表示", true, None::<&str>)?;
             let quit_item = MenuItem::with_id(app, "quit", "終了", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&quit_item])?;
+            let menu = Menu::with_items(app, &[&show_item, &quit_item])?;
 
             let _tray = TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
                 .menu(&menu)
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| match event.id.as_ref() {
+                    "show" => {
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
                     "quit" => {
                         info!("Quit from tray menu");
                         app.exit(0);
                     }
                     _ => {}
+                })
+                .on_tray_icon_event(|tray, event| {
+                    if let TrayIconEvent::Click {
+                        button: MouseButton::Left,
+                        ..
+                    } = event
+                    {
+                        let app = tray.app_handle();
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
                 })
                 .build(app)?;
 
@@ -74,6 +112,18 @@ pub fn run() {
             }
 
             Ok(())
+        })
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                let minimize_to_tray = db::with_db(|conn| {
+                    db::models::Settings::get(conn).map(|s| s.minimize_to_tray)
+                }).unwrap_or(true);
+
+                if minimize_to_tray {
+                    let _ = window.hide();
+                    api.prevent_close();
+                }
+            }
         })
         .invoke_handler(tauri::generate_handler![
             // Auth

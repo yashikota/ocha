@@ -1,0 +1,17 @@
+version: "3"
+
+tasks:
+  default:
+    desc: "Display this help message"
+    cmds:
+      - task -l
+
+  dev:
+    desc: "Run application"
+    cmds:
+      - bun tauri dev
+
+  build:
+    desc: "Build application"
+    cmds:
+      - bun tauri build

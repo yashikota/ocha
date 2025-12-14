@@ -576,18 +576,22 @@ pub struct Settings {
     pub notifications_enabled: bool,
     pub sound_enabled: bool,
     pub sync_interval_minutes: i32,
+    pub launch_at_login: bool,
+    pub minimize_to_tray: bool,
 }
 
 impl Settings {
     pub fn get(conn: &Connection) -> Result<Self> {
         let settings = conn.query_row(
-            "SELECT notifications_enabled, sound_enabled, sync_interval_minutes FROM settings WHERE id = 1",
+            "SELECT notifications_enabled, sound_enabled, sync_interval_minutes, launch_at_login, minimize_to_tray FROM settings WHERE id = 1",
             [],
             |row| {
                 Ok(Settings {
                     notifications_enabled: row.get::<_, i32>(0)? != 0,
                     sound_enabled: row.get::<_, i32>(1)? != 0,
                     sync_interval_minutes: row.get(2)?,
+                    launch_at_login: row.get::<_, i32>(3)? != 0,
+                    minimize_to_tray: row.get::<_, i32>(4)? != 0,
                 })
             },
         )?;
@@ -600,13 +604,17 @@ impl Settings {
             UPDATE settings SET
                 notifications_enabled = ?1,
                 sound_enabled = ?2,
-                sync_interval_minutes = ?3
+                sync_interval_minutes = ?3,
+                launch_at_login = ?4,
+                minimize_to_tray = ?5
             WHERE id = 1
             "#,
             params![
                 settings.notifications_enabled as i32,
                 settings.sound_enabled as i32,
                 settings.sync_interval_minutes,
+                settings.launch_at_login as i32,
+                settings.minimize_to_tray as i32,
             ],
         )?;
         Ok(())

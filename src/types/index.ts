@@ -67,6 +67,8 @@ export interface Settings {
   notificationsEnabled: boolean;
   soundEnabled: boolean;
   syncIntervalMinutes: number;
+  launchAtLogin: boolean;
+  minimizeToTray: boolean;
 }
 
 // 認証状態

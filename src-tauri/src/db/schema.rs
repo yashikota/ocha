@@ -75,7 +75,9 @@ pub fn create_tables(conn: &Connection) -> Result<()> {
             id INTEGER PRIMARY KEY CHECK (id = 1),
             notifications_enabled INTEGER NOT NULL DEFAULT 1,
             sound_enabled INTEGER NOT NULL DEFAULT 1,
-            sync_interval_minutes INTEGER NOT NULL DEFAULT 5
+            sync_interval_minutes INTEGER NOT NULL DEFAULT 5,
+            launch_at_login INTEGER NOT NULL DEFAULT 0,
+            minimize_to_tray INTEGER NOT NULL DEFAULT 1
         );
 
         -- デフォルト設定を挿入
@@ -116,6 +118,29 @@ fn run_migrations(conn: &Connection) -> Result<()> {
             ALTER TABLE messages ADD COLUMN to_email TEXT;
             ALTER TABLE messages ADD COLUMN is_sent INTEGER NOT NULL DEFAULT 0;
             ALTER TABLE messages ADD COLUMN folder TEXT NOT NULL DEFAULT 'INBOX';
+            "#,
+        )?;
+
+        info!("Migration completed successfully");
+    }
+
+    // launch_at_loginカラムが存在するか確認
+    let has_launch_at_login: bool = conn
+        .query_row(
+            "SELECT COUNT(*) FROM pragma_table_info('settings') WHERE name = 'launch_at_login'",
+            [],
+            |row| row.get::<_, i32>(0),
+        )
+        .map(|count| count > 0)
+        .unwrap_or(false);
+
+    if !has_launch_at_login {
+        info!("Running migration: adding launch_at_login and minimize_to_tray columns to settings table");
+
+        conn.execute_batch(
+            r#"
+            ALTER TABLE settings ADD COLUMN launch_at_login INTEGER NOT NULL DEFAULT 0;
+            ALTER TABLE settings ADD COLUMN minimize_to_tray INTEGER NOT NULL DEFAULT 1;
             "#,
         )?;
 

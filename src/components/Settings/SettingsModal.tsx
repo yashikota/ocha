@@ -51,7 +51,10 @@ export function SettingsModal() {
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[80vh] overflow-hidden">
         {/* ヘッダー */}
         <div className="px-6 py-4 border-b border-border flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-text">{t('settings.title')}</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-text">{t('settings.title')}</h2>
+            <span className="text-xs text-text-sub">v{__APP_VERSION__}</span>
+          </div>
           <button
             onClick={() => setIsOpen(false)}
             className="p-2 rounded-lg hover:bg-hover transition-colors"
@@ -122,6 +125,32 @@ export function SettingsModal() {
             </div>
           </section>
 
+          {/* システム設定 */}
+          <section>
+            <h3 className="text-sm font-semibold text-text mb-3">{t('settings.system.title')}</h3>
+            <div className="space-y-3">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={localSettings.launchAtLogin}
+                  onChange={(e) => setLocalSettings({ ...localSettings, launchAtLogin: e.target.checked })}
+                  className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                />
+                <span className="text-sm text-text">{t('settings.system.launchAtLogin')}</span>
+              </label>
+
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={localSettings.minimizeToTray}
+                  onChange={(e) => setLocalSettings({ ...localSettings, minimizeToTray: e.target.checked })}
+                  className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                />
+                <span className="text-sm text-text">{t('settings.system.minimizeToTray')}</span>
+              </label>
+            </div>
+          </section>
+
           {/* データ管理 */}
           <section>
             <h3 className="text-sm font-semibold text-text mb-3">{t('settings.data.title')}</h3>
@@ -146,12 +175,7 @@ export function SettingsModal() {
             </div>
           </section>
 
-          {/* バージョン情報 */}
-          <section className="pt-2 border-t border-border">
-            <div className="text-xs text-text-sub text-center">
-              v{__APP_VERSION__}
-            </div>
-          </section>
+
         </div>
 
         {/* フッター */}

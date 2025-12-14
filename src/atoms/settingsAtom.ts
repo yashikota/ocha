@@ -6,5 +6,6 @@ export const settingsAtom = atom<Settings>({
   notificationsEnabled: true,
   soundEnabled: true,
   syncIntervalMinutes: 5,
+  launchAtLogin: false,
+  minimizeToTray: true,
 });
-

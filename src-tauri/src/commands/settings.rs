@@ -1,4 +1,6 @@
 use log::info;
+use tauri::AppHandle;
+use tauri_plugin_autostart::ManagerExt;
 use crate::db::{self, models::Settings};
 
 /// 設定を取得
@@ -10,9 +12,18 @@ pub fn get_settings() -> Result<Settings, String> {
 
 /// 設定を更新
 #[tauri::command]
-pub fn update_settings(settings: Settings) -> Result<(), String> {
+pub fn update_settings(app: AppHandle, settings: Settings) -> Result<(), String> {
     db::with_db(|conn| Settings::save(conn, &settings))
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+
+    // 自動起動設定を反映
+    if settings.launch_at_login {
+        let _ = app.autolaunch().enable();
+    } else {
+        let _ = app.autolaunch().disable();
+    }
+
+    Ok(())
 }
 
 /// メッセージとグループをリセット（文字化け修正用）

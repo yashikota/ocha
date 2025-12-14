@@ -70,6 +70,11 @@
             "sound": "通知音を有効にする",
             "syncInterval": "同期間隔（分）"
         },
+        "system": {
+            "title": "システム設定",
+            "launchAtLogin": "システム起動時に自動的に起動する",
+            "minimizeToTray": "ウィンドウを閉じるときにトレイに最小化する"
+        },
         "groups": {
             "title": "グループ管理",
             "name": "グループ名",
