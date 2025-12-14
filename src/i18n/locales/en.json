@@ -49,7 +49,15 @@
         "hideGroup": "Hide Group",
         "restoreGroup": "Restore Group",
         "showHiddenGroups": "Show Hidden Groups",
-        "hideHiddenGroups": "Hide Hidden Groups"
+        "hideHiddenGroups": "Hide Hidden Groups",
+        "createTab": "Create Tab",
+        "renameTab": "Rename Tab",
+        "deleteTab": "Delete Tab",
+        "addTab": "New Tab",
+        "tabNamePlaceholder": "Enter tab name",
+        "moveToTab": "Move to {{tab}}",
+        "moveToMain": "Move to Main",
+        "deleteTabConfirm": "Delete \"{{tab}}\"?\nGroups inside will return to Main."
     },
     "chat": {
         "noSelection": "Select a group",

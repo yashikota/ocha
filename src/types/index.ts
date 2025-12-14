@@ -23,7 +23,15 @@ export interface Group {
   isPinned: boolean;
   notifyEnabled: boolean;
   isHidden: boolean;
+  tabId: number | null;
   createdAt: string;
+}
+
+// タブ
+export interface Tab {
+  id: number;
+  name: string;
+  sortOrder: number;
 }
 
 // グループメンバー

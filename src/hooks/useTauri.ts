@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { OAuthConfig, Account, Group, GroupMember, Message, Attachment, Settings } from '../types';
+import type { OAuthConfig, Account, Group, GroupMember, Message, Attachment, Settings, Tab } from '../types';
 
 // ============================================================================
 // Auth
@@ -98,8 +98,9 @@ export async function updateGroup(
   isPinned: boolean,
   notifyEnabled: boolean,
   isHidden: boolean,
+  tabId?: number | null,
 ): Promise<void> {
-  return invoke('update_group', { id, name, avatarColor, isPinned, notifyEnabled, isHidden });
+  return invoke('update_group', { id, name, avatarColor, isPinned, notifyEnabled, isHidden, tabId });
 }
 
 export async function deleteGroup(id: number): Promise<void> {
@@ -128,6 +129,30 @@ export async function mergeGroups(targetId: number, sourceId: number): Promise<v
 
 export async function splitGroup(sourceId: number, emails: string[], newGroupName: string): Promise<number> {
   return invoke('split_group', { sourceId, emails, newGroupName });
+}
+
+// ============================================================================
+// Tabs
+// ============================================================================
+
+export async function getTabs(): Promise<Tab[]> {
+  return invoke('get_tabs');
+}
+
+export async function createTab(name: string): Promise<number> {
+  return invoke('create_tab', { name });
+}
+
+export async function updateTab(id: number, name: string): Promise<void> {
+  return invoke('update_tab', { id, name });
+}
+
+export async function deleteTab(id: number): Promise<void> {
+  return invoke('delete_tab', { id });
+}
+
+export async function updateTabOrders(orders: [number, number][]): Promise<void> {
+  return invoke('update_tab_orders', { orders });
 }
 
 // ============================================================================

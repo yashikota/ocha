@@ -92,6 +92,13 @@ pub fn create_tables(conn: &Connection) -> Result<()> {
         CREATE INDEX IF NOT EXISTS idx_messages_from_email ON messages(from_email);
         CREATE INDEX IF NOT EXISTS idx_group_members_email ON group_members(email);
         CREATE INDEX IF NOT EXISTS idx_attachments_message_id ON attachments(message_id);
+
+        -- タブ
+        CREATE TABLE IF NOT EXISTS tabs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            sort_order INTEGER NOT NULL DEFAULT 0
+        );
         "#,
     )?;
 
@@ -104,6 +111,17 @@ pub fn create_tables(conn: &Connection) -> Result<()> {
 
     if count == 0 {
         conn.execute("ALTER TABLE groups ADD COLUMN is_hidden INTEGER NOT NULL DEFAULT 0", [])?;
+    }
+
+    // マイグレーション: tab_idカラムを追加
+    let count: i32 = conn.query_row(
+        "SELECT COUNT(*) FROM pragma_table_info('groups') WHERE name = 'tab_id'",
+        [],
+        |row| row.get(0),
+    ).unwrap_or(0);
+
+    if count == 0 {
+        conn.execute("ALTER TABLE groups ADD COLUMN tab_id INTEGER REFERENCES tabs(id) ON DELETE SET NULL", [])?;
     }
 
     Ok(())

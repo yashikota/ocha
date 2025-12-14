@@ -30,8 +30,9 @@ pub fn update_group(
     is_pinned: bool,
     notify_enabled: bool,
     is_hidden: bool,
+    tab_id: Option<i64>,
 ) -> Result<(), String> {
-    db::with_db(|conn| Group::update(conn, id, &name, &avatar_color, is_pinned, notify_enabled, is_hidden))
+    db::with_db(|conn| Group::update(conn, id, &name, &avatar_color, is_pinned, notify_enabled, is_hidden, tab_id))
         .map_err(|e| e.to_string())
 }
 

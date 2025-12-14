@@ -53,7 +53,15 @@
         "hideGroup": "グループを非表示",
         "restoreGroup": "グループを再表示",
         "showHiddenGroups": "非表示グループを表示",
-        "hideHiddenGroups": "非表示グループを隠す"
+        "hideHiddenGroups": "非表示グループを隠す",
+        "createTab": "タブを作成",
+        "renameTab": "タブ名を変更",
+        "deleteTab": "タブを削除",
+        "addTab": "新しいタブ",
+        "tabNamePlaceholder": "タブ名を入力",
+        "moveToTab": "「{{tab}}」に移動",
+        "moveToMain": "メインに戻す",
+        "deleteTabConfirm": "「{{tab}}」を削除しますか？\n含まれるグループは「メイン」に戻ります。"
     },
     "chat": {
         "noSelection": "グループを選択してください",

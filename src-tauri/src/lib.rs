@@ -162,6 +162,12 @@ pub fn run() {
             commands::get_settings,
             commands::update_settings,
             commands::reset_messages,
+            // Tabs
+            commands::get_tabs,
+            commands::create_tab,
+            commands::update_tab,
+            commands::delete_tab,
+            commands::update_tab_orders,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

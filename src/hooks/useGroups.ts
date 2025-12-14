@@ -1,6 +1,6 @@
 import { useAtom } from 'jotai';
 import { useCallback } from 'react';
-import { groupsAtom, selectedGroupIdAtom, unreadCountsAtom, groupMembersAtom } from '../atoms';
+import { groupsAtom, selectedGroupIdAtom, unreadCountsAtom, groupMembersAtom, tabsAtom } from '../atoms';
 import * as tauri from './useTauri';
 import type { Group } from '../types';
 
@@ -9,6 +9,7 @@ export function useGroups() {
   const [selectedGroupId, setSelectedGroupId] = useAtom(selectedGroupIdAtom);
   const [unreadCounts, setUnreadCounts] = useAtom(unreadCountsAtom);
   const [groupMembers, setGroupMembers] = useAtom(groupMembersAtom);
+  const [tabs, setTabs] = useAtom(tabsAtom);
 
   // グループ一覧を取得
   const fetchGroups = useCallback(async () => {
@@ -58,8 +59,9 @@ export function useGroups() {
     isPinned: boolean,
     notifyEnabled: boolean,
     isHidden: boolean,
+    tabId?: number | null,
   ) => {
-    await tauri.updateGroup(id, name, avatarColor, isPinned, notifyEnabled, isHidden);
+    await tauri.updateGroup(id, name, avatarColor, isPinned, notifyEnabled, isHidden, tabId);
     await fetchGroups();
   }, [fetchGroups]);
 
@@ -110,6 +112,78 @@ export function useGroups() {
     await fetchGroupMembers(groupId);
   }, [fetchGroupMembers]);
 
+  // タブ一覧を取得
+  const fetchTabs = useCallback(async () => {
+    const data = await tauri.getTabs();
+    setTabs(data);
+    return data;
+  }, [setTabs]);
+
+  // タブを作成
+  const createTab = useCallback(async (name: string) => {
+    const id = await tauri.createTab(name);
+    await fetchTabs();
+    return id;
+  }, [fetchTabs]);
+
+  // タブを更新
+  const updateTab = useCallback(async (id: number, name: string) => {
+    await tauri.updateTab(id, name);
+    await fetchTabs();
+  }, [fetchTabs]);
+
+  // タブを削除
+  const deleteTab = useCallback(async (id: number) => {
+    await tauri.deleteTab(id);
+    await fetchTabs();
+    // 削除されたタブに属していたグループのリロードも必要かも（ON DELETE SET NULLなのでtabIdが変わる）
+    await fetchGroups();
+  }, [fetchTabs, fetchGroups]);
+
+  // タブの順序を更新
+  const reorderTabs = useCallback(async (orders: [number, number][]) => {
+    // 楽観的UI更新
+    setTabs(prev => {
+      const next = [...prev];
+      orders.forEach(([id, order]) => {
+        const tab = next.find(t => t.id === id);
+        if (tab) tab.sortOrder = order;
+      });
+      return next.sort((a, b) => a.sortOrder - b.sortOrder);
+    });
+
+    await tauri.updateTabOrders(orders);
+    await fetchTabs();
+  }, [setTabs, fetchTabs]);
+
+  // グループをタブに移動
+  const assignGroupToTab = useCallback(async (group: Group, tabId: number | null) => {
+    await updateGroup(
+      group.id,
+      group.name,
+      group.avatarColor,
+      group.isPinned,
+      group.notifyEnabled,
+      group.isHidden, // タブ移動は非表示状態を維持するか？ hiddenタブは特別扱いなので、カスタムタブに入れるなら非表示解除すべきか？
+      // "Main" or Custom Tab -> isHidden = false
+      // "Hidden" Tab -> isHidden = true
+      // 今回の要件ではカスタムタブとMainは同列。Hiddenは別。
+      // tabIdを指定して更新
+    );
+    // updateGroupのシグネチャがまだtabIdを受け取っていないため、ここでupdateGroupを呼ぶときにtabIdを渡せるようにする必要がある。
+    // 先ほどのmulti_replaceでupdateGroupの引数を増やしたはずだが、useGroups内のupdateGroupも更新する必要がある。
+    await tauri.updateGroup(
+      group.id,
+      group.name,
+      group.avatarColor,
+      group.isPinned,
+      group.notifyEnabled,
+      group.isHidden,
+      tabId
+    );
+    await fetchGroups();
+  }, [fetchGroups]);
+
   return {
     groups,
     selectedGroupId,
@@ -125,5 +199,12 @@ export function useGroups() {
     fetchGroupMembers,
     addEmailToGroup,
     removeEmailFromGroup,
+    tabs,
+    fetchTabs,
+    createTab,
+    updateTab,
+    deleteTab,
+    reorderTabs,
+    assignGroupToTab,
   };
 }

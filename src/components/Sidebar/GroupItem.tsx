@@ -22,7 +22,7 @@ export function GroupItem({
   isOverlay = false,
 }: GroupItemProps) {
   const { t } = useTranslation();
-  const { toggleHideGroup } = useGroups();
+  const { toggleHideGroup, tabs, assignGroupToTab } = useGroups();
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
 
   const {
@@ -129,6 +129,14 @@ export function GroupItem({
               label: group.isHidden ? t('sidebar.restoreGroup') : t('sidebar.hideGroup'),
               onClick: () => toggleHideGroup(group),
             },
+            ...tabs.map(tab => ({
+              label: t('sidebar.moveToTab', { tab: tab.name }),
+              onClick: () => assignGroupToTab(group, tab.id),
+            })),
+            ...(group.tabId !== null ? [{
+              label: t('sidebar.moveToMain'),
+              onClick: () => assignGroupToTab(group, null),
+            }] : []),
           ]}
         />
       )}
