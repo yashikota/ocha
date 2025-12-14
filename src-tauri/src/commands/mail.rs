@@ -96,7 +96,8 @@ pub async fn sync_messages(app: AppHandle) -> Result<Vec<Message>, String> {
                 if let Some(msg) = all_saved.iter().find(|m| !m.is_sent) {
                     let from_name = msg.from_name.as_deref().unwrap_or(&msg.from_email);
                     let subject = msg.subject.as_deref().unwrap_or("(件名なし)");
-                    let _ = notification::notify_new_mail(&app, from_name, subject);
+                    let group_id = msg.group_id.unwrap_or(0); // group_id should exist
+                    let _ = notification::notify_new_mail(&app, from_name, subject, group_id);
                 }
             } else {
                 let _ = notification::notify_new_mails(&app, new_count);
@@ -296,7 +297,8 @@ pub async fn start_idle_watch(app: AppHandle) -> Result<(), String> {
                                 if let Some(msg) = saved.iter().find(|m| !m.is_sent) {
                                     let from_name = msg.from_name.as_deref().unwrap_or(&msg.from_email);
                                     let subject = msg.subject.as_deref().unwrap_or("(件名なし)");
-                                    let _ = notification::notify_new_mail(&app_clone, from_name, subject);
+                                    let group_id = msg.group_id.unwrap_or(0);
+                                    let _ = notification::notify_new_mail(&app_clone, from_name, subject, group_id);
                                 }
                             } else if new_count > 1 {
                                 let _ = notification::notify_new_mails(&app_clone, new_count);

@@ -17,7 +17,7 @@ import { getCurrentWindow } from '@tauri-apps/api/window';
 export function AppLayout() {
   const { t } = useTranslation();
   const { startWatching, syncMessages, fetchMessages } = useMessages();
-  const { fetchGroups, fetchUnreadCounts, selectedGroupId } = useGroups();
+  const { fetchGroups, fetchUnreadCounts, selectedGroupId, selectGroup } = useGroups();
   const { logout } = useAuth();
   const [settings] = useAtom(settingsAtom);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -79,11 +79,28 @@ export function AppLayout() {
     let unlisten: Awaited<ReturnType<typeof onAction>> | undefined;
 
     const setupListener = async () => {
-      unlisten = await onAction((_notification) => {
-        console.log('Notification clicked, restoring window...');
+      unlisten = await onAction((notification) => {
+        console.log('Notification clicked:', notification);
         const win = getCurrentWindow();
         win.show();
         win.setFocus();
+
+        // ペイロードまたはactionTypeIdからgroupIdを取得して遷移
+        // @ts-ignore
+        const data = notification.data || notification.payload;
+
+        let groupId: number | null = null;
+
+        if (data && data.groupId) {
+          groupId = parseInt(data.groupId, 10);
+        } else if (notification.actionTypeId && notification.actionTypeId.startsWith('group_')) {
+          groupId = parseInt(notification.actionTypeId.replace('group_', ''), 10);
+        }
+
+        if (groupId !== null && !isNaN(groupId)) {
+          console.log('Navigating to group:', groupId);
+          selectGroup(groupId);
+        }
       });
     };
 
