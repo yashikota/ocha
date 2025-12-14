@@ -102,13 +102,44 @@ pub async fn download_attachment(
     let data = target_attachment.data.as_ref()
         .ok_or("Attachment data is empty")?;
 
-    // ファイルを保存
-    let attachments_dir = get_attachments_dir(&app)?;
+    // 設定を取得
+    let settings = db::with_db(|conn| db::models::Settings::get(conn))
+        .map_err(|e| e.to_string())?;
 
-    // ファイル名に一意の識別子を追加（同名ファイルの衝突を防ぐ）
-    let safe_filename = attachment.filename
-        .replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], "_");
-    let filename = format!("{}_{}", attachment_id, safe_filename);
+    let (attachments_dir, use_original_filename) = if settings.download_path == "downloads" {
+        (
+            app.path()
+                .download_dir()
+                .map_err(|e| format!("Failed to get download directory: {}", e))?,
+            true,
+        )
+    } else {
+        (get_attachments_dir(&app)?, false)
+    };
+
+    let safe_filename = attachment.filename.replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], "_");
+    let filename = if use_original_filename {
+        // ダウンロードフォルダの場合は元のファイル名を使用（衝突時は連番付与）
+        let mut final_name = safe_filename.clone();
+        let mut counter = 1;
+        while attachments_dir.join(&final_name).exists() {
+            let path = std::path::Path::new(&safe_filename);
+            let stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("file");
+            let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("");
+
+            final_name = if ext.is_empty() {
+                format!("{} ({})", stem, counter)
+            } else {
+                format!("{} ({}).{}", stem, counter, ext)
+            };
+            counter += 1;
+        }
+        final_name
+    } else {
+        // アプリ内保存の場合は従来の命名規則
+        format!("{}_{}", attachment_id, safe_filename)
+    };
+
     let local_path = attachments_dir.join(&filename);
 
     info!("Saving attachment to: {:?}", local_path);

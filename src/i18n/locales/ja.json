@@ -78,7 +78,10 @@
             "title": "システム設定",
             "language": "言語",
             "launchAtLogin": "システム起動時に自動的に起動する",
-            "minimizeToTray": "ウィンドウを閉じるときにトレイに最小化する"
+            "minimizeToTray": "ウィンドウを閉じるときにトレイに最小化する",
+            "downloadPath": "添付ファイルの保存先",
+            "downloadPathApp": "アプリ内",
+            "downloadPathDownloads": "ダウンロードフォルダ（デフォルト）"
         },
         "groups": {
             "title": "グループ管理",

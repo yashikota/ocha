@@ -8,4 +8,5 @@ export const settingsAtom = atom<Settings>({
   syncIntervalMinutes: 5,
   launchAtLogin: false,
   minimizeToTray: true,
+  downloadPath: 'downloads',
 });

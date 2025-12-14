@@ -77,7 +77,8 @@ pub fn create_tables(conn: &Connection) -> Result<()> {
             sound_enabled INTEGER NOT NULL DEFAULT 1,
             sync_interval_minutes INTEGER NOT NULL DEFAULT 5,
             launch_at_login INTEGER NOT NULL DEFAULT 0,
-            minimize_to_tray INTEGER NOT NULL DEFAULT 1
+            minimize_to_tray INTEGER NOT NULL DEFAULT 1,
+            download_path TEXT NOT NULL DEFAULT 'downloads'
         );
 
         -- デフォルト設定を挿入
@@ -142,6 +143,27 @@ fn run_migrations(conn: &Connection) -> Result<()> {
             ALTER TABLE settings ADD COLUMN launch_at_login INTEGER NOT NULL DEFAULT 0;
             ALTER TABLE settings ADD COLUMN minimize_to_tray INTEGER NOT NULL DEFAULT 1;
             "#,
+        )?;
+
+        info!("Migration completed successfully");
+    }
+
+    // download_pathカラムが存在するか確認
+    let has_download_path: bool = conn
+        .query_row(
+            "SELECT COUNT(*) FROM pragma_table_info('settings') WHERE name = 'download_path'",
+            [],
+            |row| row.get::<_, i32>(0),
+        )
+        .map(|count| count > 0)
+        .unwrap_or(false);
+
+    if !has_download_path {
+        info!("Running migration: adding download_path column to settings table");
+
+        conn.execute(
+            "ALTER TABLE settings ADD COLUMN download_path TEXT NOT NULL DEFAULT 'downloads'",
+            [],
         )?;
 
         info!("Migration completed successfully");

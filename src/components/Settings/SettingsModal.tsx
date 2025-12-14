@@ -212,6 +212,18 @@ export function SettingsModal() {
                   />
                   <span className="text-sm text-text">{t('settings.system.minimizeToTray')}</span>
                 </label>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-text">{t('settings.system.downloadPath')}</span>
+                  <select
+                    value={localSettings.downloadPath}
+                    onChange={(e) => setLocalSettings({ ...localSettings, downloadPath: e.target.value as 'app' | 'downloads' })}
+                    className="px-2 py-1 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="app">{t('settings.system.downloadPathApp')}</option>
+                    <option value="downloads">{t('settings.system.downloadPathDownloads')}</option>
+                  </select>
+                </div>
               </div>
             </section>
 
