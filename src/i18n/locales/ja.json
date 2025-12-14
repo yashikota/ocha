@@ -72,6 +72,14 @@
         "jump": "移動",
         "bookmarked": "ブックマーク済み"
     },
+    "search": {
+        "globalTitle": "全体検索",
+        "localTitle": "グループ内検索",
+        "placeholder": "検索キーワードを入力...",
+        "action": "検索",
+        "noResults": "一致するメッセージは見つかりませんでした",
+        "start": "キーワードを入力して検索してください"
+    },
     "chat": {
         "noSelection": "グループを選択してください",
         "noMessages": "メッセージがありません",

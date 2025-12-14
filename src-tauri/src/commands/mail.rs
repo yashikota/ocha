@@ -280,6 +280,12 @@ pub fn get_bookmarked_messages() -> Result<Vec<Message>, String> {
 }
 
 #[tauri::command]
+pub fn search_messages(query: String, group_id: Option<i64>) -> Result<Vec<Message>, String> {
+    db::with_db(|conn| Message::search(conn, &query, group_id))
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub async fn start_idle_watch(app: AppHandle) -> Result<(), String> {
     let (access_token, email) = get_valid_access_token().await?;
 

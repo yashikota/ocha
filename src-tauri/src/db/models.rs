@@ -531,6 +531,45 @@ impl Message {
 
         Ok(messages)
     }
+
+    pub fn search(
+        conn: &Connection,
+        query: &str,
+        group_id: Option<i64>,
+    ) -> Result<Vec<Self>> {
+        let pattern = format!("%{}%", query);
+        let mut sql = String::from(
+            r#"
+            SELECT id, uid, message_id, group_id, from_email, from_name, to_email,
+                   subject, body_text, body_html, received_at, is_read, is_sent, folder, is_bookmarked
+            FROM messages
+            WHERE (subject LIKE ?1 OR body_text LIKE ?1 OR from_name LIKE ?1 OR from_email LIKE ?1)
+            "#,
+        );
+
+        if group_id.is_some() {
+            sql.push_str(" AND group_id = ?2");
+        }
+
+        sql.push_str(" ORDER BY received_at DESC");
+
+        let mut stmt = conn.prepare(&sql)?;
+
+        let rows = if let Some(gid) = group_id {
+             stmt.query_map(params![&pattern, gid], Self::from_row)?
+        } else {
+             stmt.query_map(params![&pattern], Self::from_row)?
+        };
+
+        let mut messages = rows.collect::<rusqlite::Result<Vec<_>>>()?;
+
+        // 添付ファイルを取得
+        for msg in &mut messages {
+            msg.attachments = Attachment::list_by_message(conn, msg.id)?;
+        }
+
+        Ok(messages)
+    }
 }
 
 #[derive(Debug, Clone)]

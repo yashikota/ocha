@@ -145,6 +145,7 @@ pub fn run() {
             commands::stop_idle_watch,
             commands::toggle_message_bookmark,
             commands::get_bookmarked_messages,
+            commands::search_messages,
             // Groups
             commands::get_groups,
             commands::get_group,

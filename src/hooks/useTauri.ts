@@ -71,6 +71,10 @@ export async function getBookmarkedMessages(): Promise<Message[]> {
   return invoke('get_bookmarked_messages');
 }
 
+export async function searchMessages(query: string, groupId?: number): Promise<Message[]> {
+  return invoke('search_messages', { query, groupId });
+}
+
 export async function getUnreadCounts(): Promise<[number, number][]> {
   return invoke('get_unread_counts');
 }

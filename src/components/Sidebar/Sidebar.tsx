@@ -21,6 +21,7 @@ import { ConfirmDialog, InputDialog } from '../UI';
 import { ContextMenu } from './ContextMenu';
 import { useDraggableScroll } from '../../hooks/useDraggableScroll';
 import { BookmarkListModal } from '../Chat/BookmarkListModal';
+import { SearchModal } from '../Chat/SearchModal';
 
 interface SidebarProps {
   onRefresh?: () => void;
@@ -66,6 +67,7 @@ export function Sidebar({ onRefresh }: SidebarProps) {
   } | null>(null);
 
   const [bookmarkModalOpen, setBookmarkModalOpen] = useState(false);
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
 
   const {
     tabs,
@@ -162,6 +164,7 @@ export function Sidebar({ onRefresh }: SidebarProps) {
               </svg>
             </button>
           )}
+
           <button
             onClick={() => setSettingsOpen(true)}
             className="p-2 rounded-lg hover:bg-hover transition-colors"
@@ -185,6 +188,15 @@ export function Sidebar({ onRefresh }: SidebarProps) {
           >
             <span className="text-lg">📌</span>
             <span className="text-sm font-medium">{t('bookmark.title', 'ブックマーク')}</span>
+          </button>
+          <button
+            onClick={() => setSearchModalOpen(true)}
+            className="w-full text-left p-2 text-text-sub hover:text-text rounded hover:bg-bg-sidebar-input flex items-center gap-2 mt-1"
+            aria-label={t('search.globalTitle', '全体検索')}
+            title={t('search.globalTitle', '全体検索')}
+          >
+            <span className="text-lg">🔍</span>
+            <span className="text-sm font-medium">{t('search.globalTitle', '全体検索')}</span>
           </button>
         </div>
 
@@ -414,6 +426,15 @@ export function Sidebar({ onRefresh }: SidebarProps) {
       <BookmarkListModal
         isOpen={bookmarkModalOpen}
         onClose={() => setBookmarkModalOpen(false)}
+        onJumpToMessage={(groupId, messageId) => {
+          setTargetMessageId(messageId);
+          selectGroup(groupId);
+        }}
+      />
+
+      <SearchModal
+        isOpen={searchModalOpen}
+        onClose={() => setSearchModalOpen(false)}
         onJumpToMessage={(groupId, messageId) => {
           setTargetMessageId(messageId);
           selectGroup(groupId);

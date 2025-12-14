@@ -68,6 +68,14 @@
         "jump": "Jump to message",
         "bookmarked": "Bookmarked"
     },
+    "search": {
+        "globalTitle": "Global Search",
+        "localTitle": "Group Search",
+        "placeholder": "Enter search keyword...",
+        "action": "Search",
+        "noResults": "No matching messages found",
+        "start": "Please enter a keyword to search"
+    },
     "chat": {
         "noSelection": "Select a group",
         "noMessages": "No messages",
