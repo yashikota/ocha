@@ -37,6 +37,10 @@ pub fn run() {
         .setup(|app| {
             info!("ocha starting up...");
 
+            // Windowsで通知のIDを正しく認識させる
+            #[cfg(target_os = "windows")]
+            app.set_app_user_model_id("com.yashikota.ocha")?;
+
 
 
             // データディレクトリを取得してDBを初期化

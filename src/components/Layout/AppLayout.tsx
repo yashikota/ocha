@@ -9,11 +9,15 @@ import { useMessages } from '../../hooks/useMessages';
 import { useGroups } from '../../hooks/useGroups';
 import { useAuth } from '../../hooks/useAuth';
 
+import { useAtom } from 'jotai';
+import { settingsAtom } from '../../atoms/settingsAtom';
+
 export function AppLayout() {
   const { t } = useTranslation();
   const { startWatching, syncMessages, fetchMessages } = useMessages();
   const { fetchGroups, fetchUnreadCounts, selectedGroupId } = useGroups();
   const { logout } = useAuth();
+  const [settings] = useAtom(settingsAtom);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [isAuthError, setIsAuthError] = useState(false);
@@ -53,6 +57,20 @@ export function AppLayout() {
     // IMAP監視を開始
     startWatching().catch(console.error);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ポーリング（定期同期）
+  useEffect(() => {
+    if (settings.syncIntervalMinutes <= 0) return;
+
+    const intervalId = setInterval(() => {
+      if (!isSyncing) {
+        console.log('Polling: Executing periodic sync...');
+        refreshAll();
+      }
+    }, settings.syncIntervalMinutes * 60 * 1000);
+
+    return () => clearInterval(intervalId);
+  }, [settings.syncIntervalMinutes, isSyncing, refreshAll]);
 
   const handleAuthErrorConfirm = async () => {
     setIsAuthError(false);
