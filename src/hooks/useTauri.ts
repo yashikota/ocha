@@ -97,8 +97,9 @@ export async function updateGroup(
   avatarColor: string,
   isPinned: boolean,
   notifyEnabled: boolean,
+  isHidden: boolean,
 ): Promise<void> {
-  return invoke('update_group', { id, name, avatarColor, isPinned, notifyEnabled });
+  return invoke('update_group', { id, name, avatarColor, isPinned, notifyEnabled, isHidden });
 }
 
 export async function deleteGroup(id: number): Promise<void> {

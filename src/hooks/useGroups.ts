@@ -2,6 +2,7 @@ import { useAtom } from 'jotai';
 import { useCallback } from 'react';
 import { groupsAtom, selectedGroupIdAtom, unreadCountsAtom, groupMembersAtom } from '../atoms';
 import * as tauri from './useTauri';
+import type { Group } from '../types';
 
 export function useGroups() {
   const [groups, setGroups] = useAtom(groupsAtom);
@@ -30,7 +31,7 @@ export function useGroups() {
   // グループを選択
   const selectGroup = useCallback(async (groupId: number | null) => {
     setSelectedGroupId(groupId);
-    
+
     // 選択したグループを既読にする
     if (groupId !== null) {
       await tauri.markGroupAsRead(groupId);
@@ -56,10 +57,23 @@ export function useGroups() {
     avatarColor: string,
     isPinned: boolean,
     notifyEnabled: boolean,
+    isHidden: boolean,
   ) => {
-    await tauri.updateGroup(id, name, avatarColor, isPinned, notifyEnabled);
+    await tauri.updateGroup(id, name, avatarColor, isPinned, notifyEnabled, isHidden);
     await fetchGroups();
   }, [fetchGroups]);
+
+  // グループの非表示/表示を切り替え
+  const toggleHideGroup = useCallback(async (group: Group) => {
+    await updateGroup(
+      group.id,
+      group.name,
+      group.avatarColor,
+      group.isPinned,
+      group.notifyEnabled,
+      !group.isHidden
+    );
+  }, [updateGroup]);
 
   // グループを削除
   const deleteGroup = useCallback(async (id: number) => {
@@ -106,10 +120,10 @@ export function useGroups() {
     selectGroup,
     createGroup,
     updateGroup,
+    toggleHideGroup,
     deleteGroup,
     fetchGroupMembers,
     addEmailToGroup,
     removeEmailFromGroup,
   };
 }
-

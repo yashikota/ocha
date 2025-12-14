@@ -22,6 +22,7 @@ export interface Group {
   avatarColor: string;
   isPinned: boolean;
   notifyEnabled: boolean;
+  isHidden: boolean;
   createdAt: string;
 }
 

@@ -1,7 +1,10 @@
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { useTranslation } from 'react-i18next';
+import { useState } from 'react';
 import { UnreadBadge } from './UnreadBadge';
+import { ContextMenu } from './ContextMenu';
 import type { Group } from '../../types';
+import { useGroups } from '../../hooks/useGroups';
 
 interface GroupItemProps {
   group: Group;
@@ -19,6 +22,8 @@ export function GroupItem({
   isOverlay = false,
 }: GroupItemProps) {
   const { t } = useTranslation();
+  const { toggleHideGroup } = useGroups();
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
 
   const {
     attributes,
@@ -66,6 +71,10 @@ export function GroupItem({
       {...attributes}
       {...listeners}
       onClick={onClick}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        setContextMenu({ x: e.clientX, y: e.clientY });
+      }}
       className={`
         relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg
         cursor-grab active:cursor-grabbing select-none
@@ -109,6 +118,20 @@ export function GroupItem({
         )}
         <UnreadBadge count={unreadCount} />
       </div>
+
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+          items={[
+            {
+              label: group.isHidden ? t('sidebar.restoreGroup') : t('sidebar.hideGroup'),
+              onClick: () => toggleHideGroup(group),
+            },
+          ]}
+        />
+      )}
     </div>
   );
 }

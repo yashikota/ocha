@@ -124,6 +124,7 @@ pub struct Group {
     pub avatar_color: String,
     pub is_pinned: bool,
     pub notify_enabled: bool,
+    pub is_hidden: bool,
     pub created_at: String,
 }
 
@@ -135,7 +136,8 @@ impl Group {
             avatar_color: row.get(2)?,
             is_pinned: row.get::<_, i32>(3)? != 0,
             notify_enabled: row.get::<_, i32>(4)? != 0,
-            created_at: row.get(5)?,
+            is_hidden: row.get::<_, i32>(5)? != 0,
+            created_at: row.get(6)?,
         })
     }
 
@@ -143,13 +145,14 @@ impl Group {
         // 最新メッセージ順にソート（ピン留めを優先）
         let mut stmt = conn.prepare(
             r#"
-            SELECT g.id, g.name, g.avatar_color, g.is_pinned, g.notify_enabled, g.created_at
+            SELECT g.id, g.name, g.avatar_color, g.is_pinned, g.notify_enabled, g.is_hidden, g.created_at
             FROM groups g
             LEFT JOIN (
                 SELECT group_id, MAX(received_at) as latest
                 FROM messages
                 GROUP BY group_id
             ) m ON g.id = m.group_id
+            WHERE g.is_hidden = 0
             ORDER BY g.is_pinned DESC, m.latest DESC NULLS LAST, g.created_at DESC
             "#,
         )?;
@@ -163,7 +166,7 @@ impl Group {
 
     pub fn get(conn: &Connection, id: i64) -> Result<Option<Self>> {
         let mut stmt = conn.prepare(
-            "SELECT id, name, avatar_color, is_pinned, notify_enabled, created_at FROM groups WHERE id = ?1",
+            "SELECT id, name, avatar_color, is_pinned, notify_enabled, is_hidden, created_at FROM groups WHERE id = ?1",
         )?;
 
         let group = stmt.query_row(params![id], Self::from_row).optional()?;
@@ -178,10 +181,10 @@ impl Group {
         Ok(conn.last_insert_rowid())
     }
 
-    pub fn update(conn: &Connection, id: i64, name: &str, avatar_color: &str, is_pinned: bool, notify_enabled: bool) -> Result<()> {
+    pub fn update(conn: &Connection, id: i64, name: &str, avatar_color: &str, is_pinned: bool, notify_enabled: bool, is_hidden: bool) -> Result<()> {
         conn.execute(
-            "UPDATE groups SET name = ?1, avatar_color = ?2, is_pinned = ?3, notify_enabled = ?4 WHERE id = ?5",
-            params![name, avatar_color, is_pinned as i32, notify_enabled as i32, id],
+            "UPDATE groups SET name = ?1, avatar_color = ?2, is_pinned = ?3, notify_enabled = ?4, is_hidden = ?5 WHERE id = ?6",
+            params![name, avatar_color, is_pinned as i32, notify_enabled as i32, is_hidden as i32, id],
         )?;
         Ok(())
     }
@@ -247,7 +250,7 @@ impl Group {
     pub fn find_by_email(conn: &Connection, email: &str) -> Result<Option<Self>> {
         let mut stmt = conn.prepare(
             r#"
-            SELECT g.id, g.name, g.avatar_color, g.is_pinned, g.notify_enabled, g.created_at
+            SELECT g.id, g.name, g.avatar_color, g.is_pinned, g.notify_enabled, g.is_hidden, g.created_at
             FROM groups g
             INNER JOIN group_members gm ON g.id = gm.group_id
             WHERE gm.email = ?1

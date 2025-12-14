@@ -98,7 +98,7 @@ export function GroupEditModal() {
 
     setSaving(true);
     try {
-      await updateGroup(group.id, name, group.avatarColor, isPinned, notifyEnabled);
+      await updateGroup(group.id, name, group.avatarColor, isPinned, notifyEnabled, group.isHidden);
       const updatedGroups = await getGroups();
       setGroups(updatedGroups);
       handleClose();

@@ -30,6 +30,7 @@ pub fn create_tables(conn: &Connection) -> Result<()> {
             avatar_color TEXT NOT NULL DEFAULT '#4caf50',
             is_pinned INTEGER NOT NULL DEFAULT 0,
             notify_enabled INTEGER NOT NULL DEFAULT 1,
+            is_hidden INTEGER NOT NULL DEFAULT 0,
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
 
@@ -93,6 +94,17 @@ pub fn create_tables(conn: &Connection) -> Result<()> {
         CREATE INDEX IF NOT EXISTS idx_attachments_message_id ON attachments(message_id);
         "#,
     )?;
+
+    // マイグレーション: is_hiddenカラムを追加
+    let count: i32 = conn.query_row(
+        "SELECT COUNT(*) FROM pragma_table_info('groups') WHERE name = 'is_hidden'",
+        [],
+        |row| row.get(0),
+    ).unwrap_or(0);
+
+    if count == 0 {
+        conn.execute("ALTER TABLE groups ADD COLUMN is_hidden INTEGER NOT NULL DEFAULT 0", [])?;
+    }
 
     Ok(())
 }
