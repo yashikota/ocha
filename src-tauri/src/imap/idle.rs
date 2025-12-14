@@ -10,14 +10,15 @@ static IDLE_RUNNING: AtomicBool = AtomicBool::new(false);
 static IDLE_STOP: AtomicBool = AtomicBool::new(false);
 
 /// IMAP監視を開始（ポーリング方式）
-pub fn start_idle_watch<F>(
+pub fn start_idle_watch<F, T>(
     email: String,
-    access_token: String,
+    token_provider: T,
     last_uid: u32,
     on_new_mail: F,
 ) -> Result<()>
 where
     F: Fn(Vec<RawMessage>) + Send + Sync + 'static,
+    T: Fn() -> Result<String> + Send + Sync + 'static,
 {
     if IDLE_RUNNING.swap(true, Ordering::SeqCst) {
         return Ok(()); // 既に実行中
@@ -26,6 +27,7 @@ where
     IDLE_STOP.store(false, Ordering::SeqCst);
 
     let on_new_mail = Arc::new(on_new_mail);
+    let token_provider = Arc::new(token_provider);
     let mut current_uid = last_uid;
 
     thread::spawn(move || {
@@ -34,6 +36,16 @@ where
             if IDLE_STOP.load(Ordering::SeqCst) {
                 break;
             }
+
+            // トークンを取得
+            let access_token = match token_provider() {
+                Ok(token) => token,
+                Err(e) => {
+                    eprintln!("Failed to get access token: {:?}", e);
+                    thread::sleep(Duration::from_secs(60));
+                    continue;
+                }
+            };
 
             // IMAPに接続
             let session_result = connect(&email, &access_token);
@@ -74,7 +86,8 @@ where
                     }
                     Err(e) => {
                         eprintln!("Failed to fetch messages: {:?}", e);
-                        break; // 接続エラーの場合は再接続
+                        // 認証エラーの可能性もあるのでループを抜けて再接続（トークン再取得）
+                        break;
                     }
                 }
 

@@ -282,9 +282,19 @@ pub async fn start_idle_watch(app: AppHandle) -> Result<(), String> {
     let app_clone = app.clone();
     let folder = all_mail_folder.clone();
 
+    // トークンプロバイダー（クロージャ）
+    let token_provider = move || -> Result<String, anyhow::Error> {
+        // 非同期関数を同期的に実行
+        tauri::async_runtime::block_on(async {
+            get_valid_access_token().await
+                .map(|(token, _)| token)
+                .map_err(|e| anyhow::anyhow!(e))
+        })
+    };
+
     imap::start_idle_watch(
         email,
-        access_token,
+        token_provider,
         last_uid,
         move |raw_messages| {
             if let Ok(saved) = save_messages(&raw_messages, &my_email, &folder) {
