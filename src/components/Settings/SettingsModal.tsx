@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { open } from '@tauri-apps/plugin-dialog';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
 import { useAtom } from 'jotai';
@@ -213,16 +214,44 @@ export function SettingsModal() {
                   <span className="text-sm text-text">{t('settings.system.minimizeToTray')}</span>
                 </label>
 
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-text">{t('settings.system.downloadPath')}</span>
-                  <select
-                    value={localSettings.downloadPath}
-                    onChange={(e) => setLocalSettings({ ...localSettings, downloadPath: e.target.value as 'app' | 'downloads' })}
-                    className="px-2 py-1 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  >
-                    <option value="app">{t('settings.system.downloadPathApp')}</option>
-                    <option value="downloads">{t('settings.system.downloadPathDownloads')}</option>
-                  </select>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-text">{t('settings.system.downloadPath')}</span>
+                    <select
+                      value={localSettings.downloadPath === 'app' ? 'downloads' : localSettings.downloadPath}
+                      onChange={(e) => setLocalSettings({ ...localSettings, downloadPath: e.target.value as 'downloads' | 'custom' })}
+                      className="px-2 py-1 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="downloads">{t('settings.system.downloadPathDownloads')}</option>
+                      <option value="custom">{t('settings.system.downloadPathCustom')}</option>
+                    </select>
+                  </div>
+
+                  {localSettings.downloadPath === 'custom' && (
+                    <div className="flex items-center gap-2 pl-4">
+                      <input
+                        type="text"
+                        readOnly
+                        value={localSettings.downloadCustomPath || ''}
+                        className="flex-1 px-2 py-1 text-xs text-text border border-border rounded bg-bg-secondary"
+                        placeholder={t('settings.system.downloadPathCustomPlaceholder')}
+                      />
+                      <button
+                        onClick={async () => {
+                          const selected = await open({
+                            directory: true,
+                            multiple: false,
+                          });
+                          if (selected) {
+                            setLocalSettings({ ...localSettings, downloadCustomPath: selected as string });
+                          }
+                        }}
+                        className="px-3 py-1 text-xs bg-primary text-white rounded hover:bg-primary-hover"
+                      >
+                        {t('settings.system.browse')}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </section>

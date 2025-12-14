@@ -78,7 +78,8 @@ pub fn create_tables(conn: &Connection) -> Result<()> {
             sync_interval_minutes INTEGER NOT NULL DEFAULT 5,
             launch_at_login INTEGER NOT NULL DEFAULT 0,
             minimize_to_tray INTEGER NOT NULL DEFAULT 1,
-            download_path TEXT NOT NULL DEFAULT 'downloads'
+            download_path TEXT NOT NULL DEFAULT 'downloads',
+            download_custom_path TEXT
         );
 
         -- デフォルト設定を挿入
@@ -163,6 +164,27 @@ fn run_migrations(conn: &Connection) -> Result<()> {
 
         conn.execute(
             "ALTER TABLE settings ADD COLUMN download_path TEXT NOT NULL DEFAULT 'downloads'",
+            [],
+        )?;
+
+        info!("Migration completed successfully");
+    }
+
+    // download_custom_pathカラムが存在するか確認
+    let has_custom_path: bool = conn
+        .query_row(
+            "SELECT COUNT(*) FROM pragma_table_info('settings') WHERE name = 'download_custom_path'",
+            [],
+            |row| row.get::<_, i32>(0),
+        )
+        .map(|count| count > 0)
+        .unwrap_or(false);
+
+    if !has_custom_path {
+        info!("Running migration: adding download_custom_path column to settings table");
+
+        conn.execute(
+            "ALTER TABLE settings ADD COLUMN download_custom_path TEXT",
             [],
         )?;
 

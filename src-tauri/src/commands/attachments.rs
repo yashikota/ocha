@@ -7,22 +7,7 @@ use crate::db::{self, models::{Account, Attachment, Message}};
 use crate::imap;
 use crate::mail::extract_attachments_with_data;
 
-/// 添付ファイルの保存先ディレクトリを取得
-fn get_attachments_dir(app: &AppHandle) -> Result<PathBuf, String> {
-    let app_data_dir = app.path()
-        .app_data_dir()
-        .map_err(|e| format!("Failed to get app data directory: {}", e))?;
 
-    let attachments_dir = app_data_dir.join("attachments");
-
-    // ディレクトリが存在しない場合は作成
-    if !attachments_dir.exists() {
-        fs::create_dir_all(&attachments_dir)
-            .map_err(|e| format!("Failed to create attachments directory: {}", e))?;
-    }
-
-    Ok(attachments_dir)
-}
 
 /// 添付ファイルをダウンロード
 #[tauri::command]
@@ -106,39 +91,55 @@ pub async fn download_attachment(
     let settings = db::with_db(|conn| db::models::Settings::get(conn))
         .map_err(|e| e.to_string())?;
 
-    let (attachments_dir, use_original_filename) = if settings.download_path == "downloads" {
-        (
+    let (attachments_dir, use_original_filename) = match settings.download_path.as_str() {
+        "custom" => {
+            if let Some(path_str) = settings.download_custom_path {
+                let path = PathBuf::from(path_str);
+                if path.exists() {
+                    (path, true)
+                } else {
+                    info!("Custom download path not found, falling back to downloads");
+                    (
+                        app.path()
+                            .download_dir()
+                            .map_err(|e| format!("Failed to get download directory: {}", e))?,
+                        true,
+                    )
+                }
+            } else {
+                (
+                    app.path()
+                        .download_dir()
+                        .map_err(|e| format!("Failed to get download directory: {}", e))?,
+                    true,
+                )
+            }
+        },
+        _ => (
             app.path()
                 .download_dir()
                 .map_err(|e| format!("Failed to get download directory: {}", e))?,
             true,
-        )
-    } else {
-        (get_attachments_dir(&app)?, false)
+        ),
     };
 
     let safe_filename = attachment.filename.replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], "_");
-    let filename = if use_original_filename {
-        // ダウンロードフォルダの場合は元のファイル名を使用（衝突時は連番付与）
-        let mut final_name = safe_filename.clone();
-        let mut counter = 1;
-        while attachments_dir.join(&final_name).exists() {
-            let path = std::path::Path::new(&safe_filename);
-            let stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("file");
-            let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("");
+    // 常に元のファイル名を使用（衝突時は連番付与）
+    let mut final_name = safe_filename.clone();
+    let mut counter = 1;
+    while attachments_dir.join(&final_name).exists() {
+        let path = std::path::Path::new(&safe_filename);
+        let stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("file");
+        let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("");
 
-            final_name = if ext.is_empty() {
-                format!("{} ({})", stem, counter)
-            } else {
-                format!("{} ({}).{}", stem, counter, ext)
-            };
-            counter += 1;
-        }
-        final_name
-    } else {
-        // アプリ内保存の場合は従来の命名規則
-        format!("{}_{}", attachment_id, safe_filename)
-    };
+        final_name = if ext.is_empty() {
+            format!("{} ({})", stem, counter)
+        } else {
+            format!("{} ({}).{}", stem, counter, ext)
+        };
+        counter += 1;
+    }
+    let filename = final_name;
 
     let local_path = attachments_dir.join(&filename);
 

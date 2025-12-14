@@ -80,8 +80,10 @@
             "launchAtLogin": "システム起動時に自動的に起動する",
             "minimizeToTray": "ウィンドウを閉じるときにトレイに最小化する",
             "downloadPath": "添付ファイルの保存先",
-            "downloadPathApp": "アプリ内",
-            "downloadPathDownloads": "ダウンロードフォルダ（デフォルト）"
+            "downloadPathDownloads": "ダウンロードフォルダ（デフォルト）",
+            "downloadPathCustom": "指定したフォルダー",
+            "downloadPathCustomPlaceholder": "フォルダーを選択してください",
+            "browse": "参照..."
         },
         "groups": {
             "title": "グループ管理",

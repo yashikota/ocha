@@ -9,4 +9,5 @@ export const settingsAtom = atom<Settings>({
   launchAtLogin: false,
   minimizeToTray: true,
   downloadPath: 'downloads',
+  downloadCustomPath: null,
 });

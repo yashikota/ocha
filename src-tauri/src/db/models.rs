@@ -579,12 +579,13 @@ pub struct Settings {
     pub launch_at_login: bool,
     pub minimize_to_tray: bool,
     pub download_path: String,
+    pub download_custom_path: Option<String>,
 }
 
 impl Settings {
     pub fn get(conn: &Connection) -> Result<Self> {
         let settings = conn.query_row(
-            "SELECT notifications_enabled, sound_enabled, sync_interval_minutes, launch_at_login, minimize_to_tray, download_path FROM settings WHERE id = 1",
+            "SELECT notifications_enabled, sound_enabled, sync_interval_minutes, launch_at_login, minimize_to_tray, download_path, download_custom_path FROM settings WHERE id = 1",
             [],
             |row| {
                 Ok(Settings {
@@ -594,6 +595,7 @@ impl Settings {
                     launch_at_login: row.get::<_, i32>(3)? != 0,
                     minimize_to_tray: row.get::<_, i32>(4)? != 0,
                     download_path: row.get(5)?,
+                    download_custom_path: row.get(6)?,
                 })
             },
         )?;
@@ -609,7 +611,8 @@ impl Settings {
                 sync_interval_minutes = ?3,
                 launch_at_login = ?4,
                 minimize_to_tray = ?5,
-                download_path = ?6
+                download_path = ?6,
+                download_custom_path = ?7
             WHERE id = 1
             "#,
             params![
@@ -619,6 +622,7 @@ impl Settings {
                 settings.launch_at_login as i32,
                 settings.minimize_to_tray as i32,
                 settings.download_path,
+                settings.download_custom_path,
             ],
         )?;
         Ok(())
