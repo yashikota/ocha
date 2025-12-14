@@ -91,36 +91,29 @@ pub async fn download_attachment(
     let settings = db::with_db(|conn| db::models::Settings::get(conn))
         .map_err(|e| e.to_string())?;
 
-    let (attachments_dir, use_original_filename) = match settings.download_path.as_str() {
+    let attachments_dir = match settings.download_path.as_str() {
         "custom" => {
             if let Some(path_str) = settings.download_custom_path {
                 let path = PathBuf::from(path_str);
                 if path.exists() {
-                    (path, true)
+                    path
                 } else {
                     info!("Custom download path not found, falling back to downloads");
-                    (
-                        app.path()
-                            .download_dir()
-                            .map_err(|e| format!("Failed to get download directory: {}", e))?,
-                        true,
-                    )
-                }
-            } else {
-                (
                     app.path()
                         .download_dir()
-                        .map_err(|e| format!("Failed to get download directory: {}", e))?,
-                    true,
-                )
+                        .map_err(|e| format!("Failed to get download directory: {}", e))?
+                }
+            } else {
+                app.path()
+                    .download_dir()
+                    .map_err(|e| format!("Failed to get download directory: {}", e))?
             }
         },
-        _ => (
+        _ => {
             app.path()
                 .download_dir()
-                .map_err(|e| format!("Failed to get download directory: {}", e))?,
-            true,
-        ),
+                .map_err(|e| format!("Failed to get download directory: {}", e))?
+        },
     };
 
     let safe_filename = attachment.filename.replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], "_");

@@ -1,5 +1,5 @@
 use anyhow::Result;
-use log::info;
+
 use rusqlite::Connection;
 
 pub fn create_tables(conn: &Connection) -> Result<()> {
