@@ -218,7 +218,7 @@ export function SettingsModal() {
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-text">{t('settings.system.downloadPath')}</span>
                     <select
-                      value={localSettings.downloadPath === 'app' ? 'downloads' : localSettings.downloadPath}
+                      value={localSettings.downloadPath}
                       onChange={(e) => setLocalSettings({ ...localSettings, downloadPath: e.target.value as 'downloads' | 'custom' })}
                       className="px-2 py-1 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                     >
