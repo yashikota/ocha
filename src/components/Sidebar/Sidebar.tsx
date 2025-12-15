@@ -13,7 +13,7 @@ import {
 } from '@dnd-kit/core';
 import { GroupItem } from './GroupItem';
 import { useGroups } from '../../hooks/useGroups';
-import { settingsModalOpenAtom, targetMessageIdAtom } from '../../atoms/uiAtom';
+import { settingsModalOpenAtom, targetMessageIdAtom, syncingAtom } from '../../atoms/uiAtom';
 import { mergeGroups, getGroups } from '../../hooks/useTauri';
 import { groupsAtom } from '../../atoms/groupsAtom';
 import type { Group } from '../../types';
@@ -40,6 +40,7 @@ export function Sidebar({ onRefresh }: SidebarProps) {
   const [, setSettingsOpen] = useAtom(settingsModalOpenAtom);
   const [, setGroups] = useAtom(groupsAtom);
   const [, setTargetMessageId] = useAtom(targetMessageIdAtom);
+  const [syncing] = useAtom(syncingAtom);
 
   const [activeGroup, setActiveGroup] = useState<Group | null>(null);
   const [merging, setMerging] = useState(false);
@@ -159,7 +160,7 @@ export function Sidebar({ onRefresh }: SidebarProps) {
               aria-label={t('common.refresh')}
               title={t('common.refresh')}
             >
-              <span className="text-xl">🔄</span>
+              <span className={`text-xl inline-block ${syncing ? 'animate-spin' : ''}`}>🔄</span>
             </button>
           )}
 

@@ -14,6 +14,9 @@ import { settingsAtom } from '../../atoms/settingsAtom';
 import { onAction } from '@tauri-apps/plugin-notification';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { listen } from '@tauri-apps/api/event';
+import { syncingAtom } from '../../atoms/uiAtom';
+
+// ...
 
 export function AppLayout() {
   const { t } = useTranslation();
@@ -21,16 +24,15 @@ export function AppLayout() {
   const { fetchGroups, fetchUnreadCounts, selectedGroupId, selectGroup } = useGroups();
   const { logout } = useAuth();
   const [settings] = useAtom(settingsAtom);
-  const [isSyncing, setIsSyncing] = useState(false);
+  const [isSyncing] = useAtom(syncingAtom);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [isAuthError, setIsAuthError] = useState(false);
 
   // 全データを同期・リフレッシュ
   const refreshAll = useCallback(async () => {
-    setIsSyncing(true);
     setSyncError(null);
     try {
-      // メールを同期
+      // メールを同期 (syncingAtomはここで管理される)
       await syncMessages();
       // グループ一覧を再取得
       await fetchGroups();
@@ -48,8 +50,6 @@ export function AppLayout() {
       } else {
         setSyncError(errorMsg);
       }
-    } finally {
-      setIsSyncing(false);
     }
   }, [syncMessages, fetchGroups, fetchUnreadCounts, fetchMessages, selectedGroupId]);
 
@@ -153,14 +153,7 @@ export function AppLayout() {
   return (
     <div className="h-screen flex bg-bg overflow-hidden">
       {/* 同期中の表示 */}
-      {isSyncing && (
-        <div className="fixed top-0 left-0 right-0 bg-primary text-white text-center py-1 text-sm z-50">
-          <div className="flex items-center justify-center gap-2">
-            <span className="animate-spin text-sm inline-block">🔄</span>
-            {t('common.syncing')}
-          </div>
-        </div>
-      )}
+
 
       {/* エラー表示 */}
       {syncError && (

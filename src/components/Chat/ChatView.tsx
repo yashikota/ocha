@@ -1,25 +1,22 @@
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAtom } from 'jotai';
 import { ChatHeader } from './ChatHeader';
 import { MessageList } from './MessageList';
 import { useMessages } from '../../hooks/useMessages';
 import { selectedGroupAtom } from '../../atoms/groupsAtom';
+import { syncingAtom } from '../../atoms/uiAtom';
 
 export function ChatView() {
   const { t } = useTranslation();
   const [selectedGroup] = useAtom(selectedGroupAtom);
   const { messages, loading, syncMessages, updateAttachmentPath, toggleBookmark } = useMessages();
-  const [syncing, setSyncing] = useState(false);
+  const [syncing] = useAtom(syncingAtom);
 
   const handleSync = async () => {
-    setSyncing(true);
     try {
       await syncMessages();
     } catch (error) {
       console.error('Sync failed:', error);
-    } finally {
-      setSyncing(false);
     }
   };
 

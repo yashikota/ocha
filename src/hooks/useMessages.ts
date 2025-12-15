@@ -1,7 +1,7 @@
 import { useAtom } from 'jotai';
 import { useCallback, useEffect } from 'react';
 import { listen } from '@tauri-apps/api/event';
-import { messagesAtom, messagesLoadingAtom } from '../atoms';
+import { messagesAtom, messagesLoadingAtom, syncingAtom } from '../atoms';
 import { selectedGroupIdAtom } from '../atoms/groupsAtom';
 import * as tauri from './useTauri';
 
@@ -9,6 +9,7 @@ export function useMessages() {
   const [messages, setMessages] = useAtom(messagesAtom);
   const [loading, setLoading] = useAtom(messagesLoadingAtom);
   const [selectedGroupId] = useAtom(selectedGroupIdAtom);
+  const [, setSyncing] = useAtom(syncingAtom);
 
   // メッセージを取得
   const fetchMessages = useCallback(async (groupId: number) => {
@@ -25,6 +26,7 @@ export function useMessages() {
   // メールを同期
   const syncMessages = useCallback(async () => {
     setLoading(true);
+    setSyncing(true);
     try {
       const newMessages = await tauri.syncMessages();
 
@@ -39,8 +41,9 @@ export function useMessages() {
       return newMessages;
     } finally {
       setLoading(false);
+      setSyncing(false);
     }
-  }, [setMessages, setLoading, selectedGroupId]);
+  }, [setMessages, setLoading, setSyncing, selectedGroupId]);
 
   // メッセージを既読にする
   const markAsRead = useCallback(async (messageId: number) => {
