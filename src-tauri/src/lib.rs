@@ -114,10 +114,23 @@ pub fn run() {
             // 通知クリック時のイベントリスナー
             use tauri::Listener;
             let handle = app.handle().clone();
-            app.listen("plugin:notification:actionPerformed", move |_event| {
+            app.listen("plugin:notification:actionPerformed", move |event| {
+                info!("Notification action performed: {:?}", event.payload());
                 if let Some(window) = handle.get_webview_window("main") {
                     let _ = window.show();
                     let _ = window.set_focus();
+
+                    // ペイロードからactionTypeIdを取得して解析
+                    if let Ok(payload) = serde_json::from_str::<serde_json::Value>(event.payload()) {
+                        if let Some(action_type_id) = payload.get("actionTypeId").and_then(|v| v.as_str()) {
+                            if action_type_id.starts_with("group_") {
+                                if let Ok(group_id) = action_type_id.replace("group_", "").parse::<i64>() {
+                                    info!("Emitting notification_clicked for group: {}", group_id);
+                                    let _ = window.emit("notification_clicked", serde_json::json!({ "groupId": group_id }));
+                                }
+                            }
+                        }
+                    }
                 }
             });
 

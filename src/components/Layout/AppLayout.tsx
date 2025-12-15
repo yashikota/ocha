@@ -13,6 +13,7 @@ import { useAtom } from 'jotai';
 import { settingsAtom } from '../../atoms/settingsAtom';
 import { onAction } from '@tauri-apps/plugin-notification';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { listen } from '@tauri-apps/api/event';
 
 export function AppLayout() {
   const { t } = useTranslation();
@@ -74,13 +75,40 @@ export function AppLayout() {
     return () => clearInterval(intervalId);
   }, [settings.syncIntervalMinutes, isSyncing, refreshAll]);
 
-  // 通知クリックのハンドリング
+  // 通知クリックのハンドリング (Rustからのイベント経由)
+  useEffect(() => {
+    let unlisten: () => void;
+
+    const setupListener = async () => {
+      unlisten = await listen<{ groupId: number }>('notification_clicked', (event) => {
+        console.log('Notification clicked (event):', event);
+        const win = getCurrentWindow();
+        win.show();
+        win.setFocus();
+
+        if (event.payload.groupId) {
+          console.log('Navigating to group (event):', event.payload.groupId);
+          selectGroup(event.payload.groupId);
+        }
+      });
+    };
+
+    setupListener();
+
+    return () => {
+      if (unlisten) {
+        unlisten();
+      }
+    };
+  }, [selectGroup]);
+
+  // 通知クリックのハンドリング (プラグイン直接) - フォールバック
   useEffect(() => {
     let unlisten: Awaited<ReturnType<typeof onAction>> | undefined;
 
     const setupListener = async () => {
       unlisten = await onAction((notification) => {
-        console.log('Notification clicked:', notification);
+        console.log('Notification clicked (plugin):', notification);
         const win = getCurrentWindow();
         win.show();
         win.setFocus();
@@ -98,7 +126,7 @@ export function AppLayout() {
         }
 
         if (groupId !== null && !isNaN(groupId)) {
-          console.log('Navigating to group:', groupId);
+          console.log('Navigating to group (plugin):', groupId);
           selectGroup(groupId);
         }
       });
@@ -115,7 +143,7 @@ export function AppLayout() {
         }
       }
     };
-  }, []);
+  }, [selectGroup]);
 
   const handleAuthErrorConfirm = async () => {
     setIsAuthError(false);
