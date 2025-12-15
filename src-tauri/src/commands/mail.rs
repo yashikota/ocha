@@ -215,6 +215,7 @@ fn save_messages(raw_messages: &[RawMessage], my_email: &str, folder: &str) -> R
             received_at: parsed.received_at.clone(),
             is_sent,
             folder: folder.to_string(),
+            is_read: raw.is_read,
         };
 
         let message_id = db::with_db(|conn| Message::insert(conn, &new_message))

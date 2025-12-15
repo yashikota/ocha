@@ -86,16 +86,19 @@ pub fn fetch_messages_since_uid(
         format!("{}:*", since_uid + 1)
     };
 
-    let messages = session.uid_fetch(&query, "(UID BODY[])")?;
+    // BODY.PEEK[] を使用して既読状態を変更せずに取得
+    let messages = session.uid_fetch(&query, "(UID FLAGS BODY.PEEK[])")?;
     let mut result = Vec::new();
 
     for msg in messages.iter() {
         if let Some(uid) = msg.uid {
             if uid > since_uid {
                 if let Some(body) = msg.body() {
+                    let is_read = msg.flags().iter().any(|f| matches!(f, imap::types::Flag::Seen));
                     result.push(RawMessage {
                         uid,
                         body: body.to_vec(),
+                        is_read,
                     });
                 }
             }
@@ -109,6 +112,7 @@ pub fn fetch_messages_since_uid(
 pub struct RawMessage {
     pub uid: u32,
     pub body: Vec<u8>,
+    pub is_read: bool,
 }
 
 /// 特定UIDのメッセージを取得
@@ -116,15 +120,17 @@ pub fn fetch_message_by_uid(
     session: &mut ImapSession,
     uid: u32,
 ) -> Result<Option<RawMessage>> {
-    let messages = session.uid_fetch(uid.to_string(), "(UID BODY[])")?;
+    let messages = session.uid_fetch(uid.to_string(), "(UID FLAGS BODY.PEEK[])")?;
 
     for msg in messages.iter() {
         if let Some(msg_uid) = msg.uid {
             if msg_uid == uid {
                 if let Some(body) = msg.body() {
+                    let is_read = msg.flags().iter().any(|f| matches!(f, imap::types::Flag::Seen));
                     return Ok(Some(RawMessage {
                         uid: msg_uid,
                         body: body.to_vec(),
+                        is_read,
                     }));
                 }
             }

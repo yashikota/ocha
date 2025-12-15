@@ -1,6 +1,6 @@
 import { useAtom } from 'jotai';
 import { useCallback } from 'react';
-import { groupsAtom, selectedGroupIdAtom, unreadCountsAtom, groupMembersAtom, tabsAtom } from '../atoms';
+import { groupsAtom, selectedGroupIdAtom, unreadCountsAtom, groupMembersAtom, tabsAtom, settingsAtom } from '../atoms';
 import * as tauri from './useTauri';
 import type { Group } from '../types';
 
@@ -10,6 +10,7 @@ export function useGroups() {
   const [unreadCounts, setUnreadCounts] = useAtom(unreadCountsAtom);
   const [groupMembers, setGroupMembers] = useAtom(groupMembersAtom);
   const [tabs, setTabs] = useAtom(tabsAtom);
+  const [settings] = useAtom(settingsAtom);
 
   // グループ一覧を取得
   const fetchGroups = useCallback(async () => {
@@ -33,8 +34,8 @@ export function useGroups() {
   const selectGroup = useCallback(async (groupId: number | null) => {
     setSelectedGroupId(groupId);
 
-    // 選択したグループを既読にする
-    if (groupId !== null) {
+    // 選択したグループを既読にする処理（設定で有効な場合のみ）
+    if (settings.autoMarkAsRead && groupId !== null) {
       await tauri.markGroupAsRead(groupId);
       setUnreadCounts((prev) => {
         const next = { ...prev };
@@ -42,7 +43,7 @@ export function useGroups() {
         return next;
       });
     }
-  }, [setSelectedGroupId, setUnreadCounts]);
+  }, [setSelectedGroupId, setUnreadCounts, settings.autoMarkAsRead]);
 
   // グループを作成
   const createGroup = useCallback(async (name: string, avatarColor: string) => {

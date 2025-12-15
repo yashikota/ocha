@@ -10,4 +10,5 @@ export const settingsAtom = atom<Settings>({
   minimizeToTray: true,
   downloadPath: 'downloads',
   downloadCustomPath: null,
+  autoMarkAsRead: false,
 });

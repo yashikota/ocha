@@ -79,8 +79,9 @@ export interface Settings {
   syncIntervalMinutes: number;
   launchAtLogin: boolean;
   minimizeToTray: boolean;
-  downloadPath: 'downloads' | 'custom';
-  downloadCustomPath?: string | null;
+  downloadPath: string;
+  downloadCustomPath: string | null;
+  autoMarkAsRead: boolean;
 }
 
 // 認証状態

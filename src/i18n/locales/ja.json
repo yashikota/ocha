@@ -104,7 +104,8 @@
             "title": "通知設定",
             "enabled": "通知を有効にする",
             "sound": "通知音を有効にする",
-            "syncInterval": "同期間隔（分）"
+            "syncInterval": "同期間隔（分）",
+            "autoMarkAsRead": "メッセージを自動的に既読にする"
         },
         "system": {
             "title": "システム設定",

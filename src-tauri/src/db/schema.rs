@@ -81,7 +81,8 @@ pub fn create_tables(conn: &Connection) -> Result<()> {
             launch_at_login INTEGER NOT NULL DEFAULT 0,
             minimize_to_tray INTEGER NOT NULL DEFAULT 1,
             download_path TEXT NOT NULL DEFAULT 'downloads',
-            download_custom_path TEXT
+            download_custom_path TEXT,
+            auto_mark_as_read INTEGER NOT NULL DEFAULT 0
         );
 
         -- デフォルト設定を挿入
@@ -134,6 +135,17 @@ pub fn create_tables(conn: &Connection) -> Result<()> {
 
     if count == 0 {
         conn.execute("ALTER TABLE messages ADD COLUMN is_bookmarked INTEGER NOT NULL DEFAULT 0", [])?;
+    }
+
+    // マイグレーション: auto_mark_as_readカラムを追加
+    let count: i32 = conn.query_row(
+        "SELECT COUNT(*) FROM pragma_table_info('settings') WHERE name = 'auto_mark_as_read'",
+        [],
+        |row| row.get(0),
+    ).unwrap_or(0);
+
+    if count == 0 {
+        conn.execute("ALTER TABLE settings ADD COLUMN auto_mark_as_read INTEGER NOT NULL DEFAULT 0", [])?;
     }
 
     Ok(())

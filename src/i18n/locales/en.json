@@ -100,7 +100,8 @@
             "title": "Notification Settings",
             "enabled": "Enable notifications",
             "sound": "Enable notification sound",
-            "syncInterval": "Sync interval (minutes)"
+            "syncInterval": "Sync interval (minutes)",
+            "autoMarkAsRead": "Automatically mark messages as read"
         },
         "system": {
             "title": "System Settings",

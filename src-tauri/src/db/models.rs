@@ -434,8 +434,8 @@ impl Message {
         conn.execute(
             r#"
             INSERT OR IGNORE INTO messages (uid, message_id, group_id, from_email, from_name, to_email,
-                                  subject, body_text, body_html, received_at, is_sent, folder)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
+                                  subject, body_text, body_html, received_at, is_sent, folder, is_read)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
             "#,
             params![
                 msg.uid,
@@ -450,6 +450,7 @@ impl Message {
                 msg.received_at,
                 msg.is_sent,
                 msg.folder,
+                msg.is_read as i32,
             ],
         )?;
         Ok(conn.last_insert_rowid())
@@ -586,6 +587,7 @@ pub struct NewMessage {
     pub received_at: String,
     pub is_sent: bool,
     pub folder: String,
+    pub is_read: bool,
 }
 
 // ============================================================================
@@ -667,12 +669,13 @@ pub struct Settings {
     pub minimize_to_tray: bool,
     pub download_path: String,
     pub download_custom_path: Option<String>,
+    pub auto_mark_as_read: bool,
 }
 
 impl Settings {
     pub fn get(conn: &Connection) -> Result<Self> {
         let settings = conn.query_row(
-            "SELECT notifications_enabled, sound_enabled, sync_interval_minutes, launch_at_login, minimize_to_tray, download_path, download_custom_path FROM settings WHERE id = 1",
+            "SELECT notifications_enabled, sound_enabled, sync_interval_minutes, launch_at_login, minimize_to_tray, download_path, download_custom_path, auto_mark_as_read FROM settings WHERE id = 1",
             [],
             |row| {
                 Ok(Settings {
@@ -683,6 +686,7 @@ impl Settings {
                     minimize_to_tray: row.get::<_, i32>(4)? != 0,
                     download_path: row.get(5)?,
                     download_custom_path: row.get(6)?,
+                    auto_mark_as_read: row.get::<_, i32>(7)? != 0,
                 })
             },
         )?;
@@ -699,7 +703,8 @@ impl Settings {
                 launch_at_login = ?4,
                 minimize_to_tray = ?5,
                 download_path = ?6,
-                download_custom_path = ?7
+                download_custom_path = ?7,
+                auto_mark_as_read = ?8
             WHERE id = 1
             "#,
             params![
@@ -710,6 +715,7 @@ impl Settings {
                 settings.minimize_to_tray as i32,
                 settings.download_path,
                 settings.download_custom_path,
+                settings.auto_mark_as_read as i32,
             ],
         )?;
         Ok(())
