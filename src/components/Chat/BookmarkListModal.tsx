@@ -19,7 +19,16 @@ export function BookmarkListModal({ isOpen, onClose, onJumpToMessage }: Bookmark
     if (isOpen) {
       loadBookmarks();
     }
-  }, [isOpen]);
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   const loadBookmarks = async () => {
     setLoading(true);
