@@ -159,6 +159,16 @@ export function SettingsModal() {
                   <span className="text-sm text-text">{t('settings.notifications.sound')}</span>
                 </label>
 
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={localSettings.autoMarkAsRead}
+                    onChange={(e) => setLocalSettings({ ...localSettings, autoMarkAsRead: e.target.checked })}
+                    className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                  />
+                  <span className="text-sm text-text">{t('settings.notifications.autoMarkAsRead')}</span>
+                </label>
+
                 <div className="flex items-center gap-3">
                   <label className="text-sm text-text">{t('settings.notifications.syncInterval')}</label>
                   <input
