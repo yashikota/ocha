@@ -1,6 +1,6 @@
 [package]
 name = "ocha"
-version = "0.4.5"
+version = "0.4.6"
 description = "Ocha is a desktop email client that lets you use Gmail like a chat app. It groups email conversations with the same person into a single chat view"
 authors = ["yashikota"]
 edition = "2021"
