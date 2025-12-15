@@ -31,9 +31,7 @@ export async function performOAuth(): Promise<Account> {
   return invoke('perform_oauth');
 }
 
-export async function handleOAuthCallback(): Promise<Account> {
-  return invoke('handle_oauth_callback');
-}
+
 
 export async function logout(): Promise<void> {
   return invoke('logout');
