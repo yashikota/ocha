@@ -11,6 +11,8 @@ interface SearchModalProps {
   onJumpToMessage: (groupId: number, messageId: number) => void;
 }
 
+import { Modal } from '../UI';
+
 export function SearchModal({ isOpen, onClose, groupId, onJumpToMessage }: SearchModalProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
@@ -46,20 +48,9 @@ export function SearchModal({ isOpen, onClose, groupId, onJumpToMessage }: Searc
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      onClose();
-    }
-  };
-
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => onClose()}>
-      <div
-        className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col animate-in fade-in zoom-in-95 duration-200"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Modal isOpen={isOpen} onClose={onClose} className="max-w-2xl max-h-[80vh]">
+      <div className="flex flex-col h-full">
         <div className="p-4 border-b border-border flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold flex items-center gap-2">
@@ -84,7 +75,6 @@ export function SearchModal({ isOpen, onClose, groupId, onJumpToMessage }: Searc
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={handleKeyDown}
                 placeholder={t('search.placeholder', '検索キーワードを入力...')}
                 className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 bg-bg-sidebar-input"
               />
@@ -137,8 +127,7 @@ export function SearchModal({ isOpen, onClose, groupId, onJumpToMessage }: Searc
                 >
                   <div className="bg-gray-50 px-3 py-1 text-xs text-text-sub flex justify-between items-center border-b border-gray-100">
                     <span className="flex items-center gap-2">
-                      {/* Show group name if global search logic existed, but msg lacks group name info currently.
-                           Ideally backend returns group name. For now just date. */}
+                      {/* Show group name if global search logic existed */}
                       {new Date(msg.receivedAt).toLocaleString()}
                     </span>
                     <span className="text-primary opacity-0 group-hover:opacity-100 transition-opacity">
@@ -147,7 +136,7 @@ export function SearchModal({ isOpen, onClose, groupId, onJumpToMessage }: Searc
                   </div>
                   <MessageItem
                     message={msg}
-                    onBookmarkChange={() => { }} // Search result bookmark toggling not implemented yet
+                    onBookmarkChange={() => { }}
                   />
                 </div>
               ))}
@@ -155,6 +144,6 @@ export function SearchModal({ isOpen, onClose, groupId, onJumpToMessage }: Searc
           )}
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }
