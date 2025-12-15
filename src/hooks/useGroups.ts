@@ -34,8 +34,8 @@ export function useGroups() {
   const selectGroup = useCallback(async (groupId: number | null) => {
     setSelectedGroupId(groupId);
 
-    // 選択したグループを既読にする処理（設定で有効な場合のみ）
-    if (settings.autoMarkAsRead && groupId !== null) {
+    // 選択したグループを既読にする処理
+    if (groupId !== null) {
       await tauri.markGroupAsRead(groupId);
       setUnreadCounts((prev) => {
         const next = { ...prev };

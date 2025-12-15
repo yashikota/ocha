@@ -257,9 +257,82 @@ pub fn mark_as_read(message_id: i64) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn mark_group_as_read(group_id: i64) -> Result<(), String> {
+pub async fn mark_group_as_read(group_id: i64) -> Result<(), String> {
+    // 1. ローカルDBで既読にする
     db::with_db(|conn| Message::mark_group_as_read(conn, group_id))
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+
+    // 2. 設定を確認し、有効ならGmailにも反映する
+    let should_sync = db::with_db(|conn| crate::db::models::Settings::get(conn))
+        .map_err(|e| e.to_string())?
+        .auto_mark_as_read;
+
+    if should_sync {
+        // バックグラウンドでIMAP同期を実行（失敗してもエラーは返さない/ログ出力のみ）
+        tauri::async_runtime::spawn(async move {
+             if let Err(e) = mark_group_as_read_imap(group_id).await {
+                 error!("Failed to mark group {} as read on IMAP: {}", group_id, e);
+             }
+        });
+    }
+
+    Ok(())
+}
+
+async fn mark_group_as_read_imap(group_id: i64) -> Result<(), String> {
+    let (access_token, email) = get_valid_access_token().await?;
+
+    // グループ内の未読メッセージ（UID）を取得したいが、DB上は既に既読にしてしまった。
+    // UIDを取得して、それらに \Seen フラグをセットする。
+    // ただし、既にサーバで既読のものに再度設定しても問題ない。
+    // グループに所属する全メッセージのUIDを取得（フォルダごとに処理が必要）
+
+    let messages = db::with_db(|conn| Message::list_by_group(conn, group_id))
+        .map_err(|e| e.to_string())?;
+
+    if messages.is_empty() {
+        return Ok(());
+    }
+
+    // フォルダごとにUIDをまとめる
+    use std::collections::HashMap;
+    let mut folder_uids: HashMap<String, Vec<u32>> = HashMap::new();
+
+    for msg in messages {
+        // UIDが0のものは同期前なのでスキップ
+        if msg.uid > 0 {
+             folder_uids.entry(msg.folder.clone())
+                .or_default()
+                .push(msg.uid as u32);
+        }
+    }
+
+    // フォルダごとにIMAPコマンド実行
+    for (folder, uids) in folder_uids {
+        if uids.is_empty() { continue; }
+
+        // UIDをシーケンスセット文字列に変換 (e.g. "1,2,3")
+        // imapクレートは直接数値を指定できるが、複数はUidSet等が必要か、コマンドによる。
+        // session.uid_store accepts "format" string.
+        let uid_set = uids.iter().map(|u| u.to_string()).collect::<Vec<_>>().join(",");
+
+        let email_clone = email.clone();
+        let access_token_clone = access_token.clone();
+        let folder_clone = folder.clone();
+
+        tokio::task::spawn_blocking(move || {
+            let mut session = imap::connect(&email_clone, &access_token_clone)?;
+            session.select(&folder_clone)?;
+            // +FLAGS \Seen を設定
+            session.uid_store(&uid_set, "+FLAGS (\\Seen)")?;
+            Ok::<(), anyhow::Error>(())
+        })
+        .await
+        .map_err(|e| e.to_string())?
+        .map_err(|e| e.to_string())?;
+    }
+
+    Ok(())
 }
 
 #[tauri::command]

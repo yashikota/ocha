@@ -101,7 +101,7 @@
             "enabled": "Enable notifications",
             "sound": "Enable notification sound",
             "syncInterval": "Sync interval (minutes)",
-            "autoMarkAsRead": "Automatically mark messages as read"
+            "autoMarkAsRead": "Mark as read on Gmail"
         },
         "system": {
             "title": "System Settings",

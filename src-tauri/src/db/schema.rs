@@ -82,7 +82,7 @@ pub fn create_tables(conn: &Connection) -> Result<()> {
             minimize_to_tray INTEGER NOT NULL DEFAULT 1,
             download_path TEXT NOT NULL DEFAULT 'downloads',
             download_custom_path TEXT,
-            auto_mark_as_read INTEGER NOT NULL DEFAULT 0
+            auto_mark_as_read INTEGER NOT NULL DEFAULT 1
         );
 
         -- デフォルト設定を挿入
@@ -145,7 +145,7 @@ pub fn create_tables(conn: &Connection) -> Result<()> {
     ).unwrap_or(0);
 
     if count == 0 {
-        conn.execute("ALTER TABLE settings ADD COLUMN auto_mark_as_read INTEGER NOT NULL DEFAULT 0", [])?;
+        conn.execute("ALTER TABLE settings ADD COLUMN auto_mark_as_read INTEGER NOT NULL DEFAULT 1", [])?;
     }
 
     Ok(())
