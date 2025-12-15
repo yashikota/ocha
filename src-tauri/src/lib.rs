@@ -111,6 +111,16 @@ pub fn run() {
                 info!("DevTools opened");
             }
 
+            // 通知クリック時のイベントリスナー
+            use tauri::Listener;
+            let handle = app.handle().clone();
+            app.listen("plugin:notification:actionPerformed", move |_event| {
+                if let Some(window) = handle.get_webview_window("main") {
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                }
+            });
+
             Ok(())
         })
         .on_window_event(|window, event| {
